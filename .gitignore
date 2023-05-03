@@ -1,0 +1,26 @@
+# IPython notebook
+.ipynb_checkpoints
+
+# Exclude csv files
+*.csv
+*.pdf
+*.xlsx
+*.xls
+*.xlsb
+*.png
+
+# Exclude pickles
+*.pkl
+
+# Output files
+output
+
+# Cache
+__pycache__
+
+# Windows / Mac
+desktop.ini
+.DS_Store
+.env
+
+.sheets
