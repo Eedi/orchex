@@ -1,6 +1,6 @@
-"""KAML setup script"""
+"""Eedi setup script"""
 from setuptools import find_packages, setup
-
+import eedata
 setup(
     name="eedata",
     version="0.1.0",
@@ -8,8 +8,7 @@ setup(
     author_email="maryam.honari@eedi.co.uk",
     description="Eedi data loader",
     packages=find_packages("eedata"),
-    package_dir={"": "eedata"},
-    python_requires=">=3.8.0",
+    python_requires=">=3.8.0,<=3.10.11",
     include_package_data=True,
     install_requires=[
         "pandas>=2.0.0",
