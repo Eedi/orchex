@@ -24,3 +24,5 @@ desktop.ini
 .env
 
 .sheets
+
+*.egg-info

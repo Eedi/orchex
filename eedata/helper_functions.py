@@ -13,6 +13,16 @@ if sys.platform == "darwin" and platform.processor() == "arm":
 else:
     import pyodbc
 
+def create_join_identifiers_table(temp_table_name, identifier_name, identifier_set):
+    # check temp table starts with #
+    assert temp_table_name[0] == "#", \
+        "This function is designed to create a temp table, please provide a name starting with #."
+    
+    middle_bit = f') INSERT INTO {temp_table_name} VALUES ('
+
+    return f"""DROP TABLE IF EXISTS {temp_table_name}
+CREATE TABLE {temp_table_name} ({identifier_name} INT)
+INSERT INTO {temp_table_name} VALUES {'(' + middle_bit.join(list(map(str, identifier_set))) + ')'}"""
 
 def _SQLconnection(connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING"):
     if sys.platform == "darwin" and platform.processor() == "arm":

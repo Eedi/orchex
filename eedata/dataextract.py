@@ -199,6 +199,15 @@ class DataExtract:
     def add_data_source(self, data_source):
         self.data_sources[data_source.name] = data_source
 
+    def get_or_set_data_source(self, data_source_name, data_source_func, **kwargs):
+        ds = self.data_sources.get(data_source_name, None)
+
+        if ds is None:
+            ds = data_source_func(data_source_name, **kwargs)
+            self.add_data_source(ds)
+        
+        return ds
+
     def save(self):
         """
         Save the data extract.
