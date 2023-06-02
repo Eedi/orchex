@@ -216,6 +216,23 @@ class DataExtract:
         with open(os.path.join(self.path, filename), "wb") as file:
             pickle.dump(self, file)
 
+    def export(self, data_source_names=None):
+        """
+        Export the data extract as a csv. The intention is that this can be shared with others and
+        should therefore not contain any sensitive information.
+
+        Parameters
+        ----------
+        data_source_names : list
+            A list of data source names to export. If None, then all data sources will be exported.
+        """
+        if data_source_names is None:
+            data_source_names = self.data_sources.keys()
+
+        for name in data_source_names:
+            ds = self.data_sources[name]
+            ds.export()
+
     @staticmethod
     def load(filename, path="data"):
         """
