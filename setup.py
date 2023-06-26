@@ -8,7 +8,7 @@ setup(
     author_email="maryam.honari@eedi.co.uk",
     description="Eedi data loader",
     packages=find_packages("eedata"),
-    python_requires=">=3.8.0,<=3.10.11",
+    python_requires=">=3.8.0",
     include_package_data=True,
     install_requires=[
         "pandas>=2.0.0",

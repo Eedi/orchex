@@ -38,8 +38,8 @@ def _SQLconnection(connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING"):
     return cursor
 
 
-def fromSQL(sql):
-    cursor = _SQLconnection()
+def fromSQL(sql, connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING"):
+    cursor = _SQLconnection(connection_string_name)
     cursor.execute(sql)
     columns = [d[0] for d in cursor.description]
     rows = [list(i) for i in cursor.fetchall()]
