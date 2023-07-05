@@ -40,11 +40,28 @@ def _SQLconnection(connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING"):
 
 def fromSQL(sql, connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING"):
     cursor = _SQLconnection(connection_string_name)
-    cursor.execute(sql)
+
+    try:
+        cursor.execute(sql)
+    except Exception as e:
+        print("Error executing SQL query:", e)
+        return None
+    
     columns = [d[0] for d in cursor.description]
     rows = [list(i) for i in cursor.fetchall()]
     return pd.DataFrame(rows, columns=columns)
+    
+def update_sql(sql, connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING"):
+    cursor = _SQLconnection(connection_string_name)
 
+    try:
+        cursor.execute(sql)
+    except Exception as e:
+        print("Error executing SQL query:", e)
+        return None
+    
+    cursor.commit()
+    return None
 
 def fromTableStorage(
     table_name,
