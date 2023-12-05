@@ -27,15 +27,16 @@ class DataSource:
     Various sources can be combined to create extracts.
     """
 
-    def __init__(self, name, dataframe, path="data", parents=None):
+    def __init__(self, name, dataframe, path="data", parents=None, glossary=None,
+                 columns_to_entities=dict(), whitelist=set()):
         self.name = name
         self.df = dataframe
+        self.columns_to_entities = columns_to_entities
+        self.whitelist = whitelist
 
         self.is_pseudonomised = False
-        self.columns_to_entities = dict()
-        self.whitelist = set()
 
-        self.glossary = dict()
+        self.glossary = glossary if glossary else dict()
         self.path = path
 
         self.parents = parents
@@ -118,7 +119,7 @@ class DataSource:
             self.is_pseudonomised == True
         ), "You can only export data which has been pseudonomised."
 
-        self.df.to_csv(os.path.join(self.path, self.name, ".csv"), index=False)
+        self.df.to_csv(os.path.join(self.path, f"{self.name}.csv"), index=False)
 
     def update_glossary(self, d):
         """
@@ -251,8 +252,7 @@ class DataExtract:
         -----
         d = DataExtract.load("foo.pkl")
         """
-        with open(os.path.join(path, filename), "rb") as file:
-            return pickle.load(file)
+        return pd.read_pickle(os.path.join(path, filename))
 
     def find_id_columns(self):
         return {i for i in self.df.columns if re.search(r"[i|I][d|D]$", i)}
