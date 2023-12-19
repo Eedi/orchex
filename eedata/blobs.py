@@ -4,8 +4,8 @@
 import errno
 import os
 
-from azure.storage.blob import BlobServiceClient
-
+from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions
+from datetime import datetime, timedelta
 
 class Blobs:
     """
@@ -167,6 +167,41 @@ class Blobs:
             print(f"{filename} has been deleted")
         else:
             print(f"{filename} has not been deleted")
+
+    def get_sas_token(self, blob_name):
+        """Generate a SAS token for a blob.
+
+        Parameters
+        ----------
+        blob_name : str
+            The name of the blob to generate the SAS token for.
+
+        Returns
+        -------
+        str
+            The SAS token.
+        """
+        # Set the expiry time and permissions for the SAS token
+        sas_token_expiry = datetime.utcnow() + timedelta(hours=24*28)
+        sas_permissions = BlobSasPermissions(read=True, write=False)
+
+        container_name = self.container_client.container_name
+
+        # Generate the SAS token
+        sas_token = generate_blob_sas(
+            account_name=self.blob_service_client.account_name,
+            container_name=container_name,
+            blob_name=blob_name,
+            account_key=self.blob_service_client.credential.account_key,
+            permission=sas_permissions,
+            expiry=sas_token_expiry
+        )
+
+        # Construct the full URL with SAS token
+        blob_url_with_sas = f"{self.blob_service_client.primary_endpoint}/{container_name}/{blob_name}?{sas_token}"
+        
+        return blob_url_with_sas
+
 
     def compare_files(self, localpath="data"):
         """Compare filenames in local storage and blob storage.
