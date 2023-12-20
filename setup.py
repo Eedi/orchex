@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 import eedata
 setup(
     name="eedata",
-    version="0.1.0",
+    version="0.2.0",
     author="Maryam Honari",
     author_email="maryam.honari@eedi.co.uk",
     description="Eedi data loader",
