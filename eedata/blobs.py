@@ -1,13 +1,13 @@
-# https://docs.microsoft.com/en-us/azure/architecture/data-science-process/explore-data-blob
-# https://docs.microsoft.com/en-us/azure/storage/blobs/storage-quickstart-blobs-python
-
 import errno
 import os
 
 from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions
 from datetime import datetime, timedelta
 from pathlib import Path
+from collections import namedtuple
 
+FileSyncInfo = namedtuple("FileSyncInfo", ["local_files", "blob_files", "local_missing", 
+    "blob_missing", "in_both"])
 
 class Blobs:
     """
@@ -18,7 +18,7 @@ class Blobs:
     Attributes
     ----------
     container_name : str
-        The name of the repository which is used as the blob container name.
+        The name for the blob container, typically we use the repository name.
 
     Methods
     -------
@@ -45,7 +45,7 @@ class Blobs:
         Parameters
         ----------
         container_name : str
-            The name of the repository which is used as the blob container name.
+            The name for the blob container.
         """
 
         self.__set_blob_service_client(connection_string)
@@ -58,6 +58,8 @@ class Blobs:
 
         Windows:   setx AZURE_STORAGE_EEDIDATA_CONNECTION_STRING "<yourconnectionstring>"
         Linux/Mac: export AZURE_STORAGE_EEDIDATA_CONNECTION_STRING="<yourconnectionstring>"
+
+        However, it is more convenient to use a .env file together with dotenv.
 
         The connection string comes from the Azure Portal Storage Accounts under Access Keys.
         """
@@ -110,8 +112,7 @@ class Blobs:
         filepath = Path(filepath)
         
         # If no container is defined we will simply use the filename for the blob name.
-        if container_path is None:
-            container_path = filepath.parent
+        container_path = Path(container_path) if container_path is not None else Path.cwd()
 
         # The relative filepath is used as the name for the blob.
         relative_filepath = str(filepath.relative_to(container_path))
@@ -129,60 +130,75 @@ class Blobs:
 
         return blob_client
     
-    def download(self, filename):
-        """Download a file from the container.
+    def download(self, blobname: str, container_path: Path | str | None = None):
+        """Download a blob from the container.
 
         Parameters
         ----------
-        filename : str
-            The name of the file to download.
+        blobname : str
+            The name of the blob to download. Note that blob names can contain folders.
+
+        container_path : Path | str, optional
+            The path to the folder which will contain the downloaded file.
 
         Raises
         ------
         FileNotFoundError
-            If `filename` does not exist in the container.
+            If `blobname` does not exist in the container.
         """
+        
+        # Set the local container to the current working directory if none is specified
+        container_path = Path(container_path) if container_path is not None else Path.cwd()
+        
+        filepath = container_path / blobname
 
-        local_file_path = os.path.join(self.local_path, filename)
+        # Blob names can contain folders, fix any Windows style slashes
+        blobname = blobname.replace("\\", "/")
+        
+        print(f"Downloading blob to:\n{str(filepath)}")
 
-        print("\nDownloading blob to \n\t" + local_file_path)
-
-        blob_client = self.container_client.get_blob_client(blob=filename)
+        blob_client = self.container_client.get_blob_client(blob=blobname)
 
         if not blob_client.exists():
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), filename)
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), blobname)
 
-        with open(local_file_path, "wb") as download_file:
+        # Recursively create the folders if they don't exist
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(filepath, "wb") as download_file:
             download_file.write(blob_client.download_blob().readall())
 
-    def delete(self, filename):
-        """Delete a file from the container.
+    def delete(self, blobname: str):
+        """Delete a blob from the container.
 
         Parameters
         ----------
-        filename : str
-            The name of the file to delete.
+        blobname : str
+            The name of the blob to delete.
 
         Raises
         ------
         FileNotFoundError
-            If `filename` does not exist in the container.
+            If `blobname` does not exist in the container.
         """
 
-        blob_client = self.container_client.get_blob_client(blob=filename)
+        # Blob names can contain folders, fix any Windows style slashes
+        blobname = blobname.replace("\\", "/")
+
+        blob_client = self.container_client.get_blob_client(blob=blobname)
 
         if not blob_client.exists():
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), filename)
-        print(f"Are you sure you want to delete {filename}, Y or N")
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), blobname)
+        
+        print(f"Are you sure you want to delete {blobname}? (Y or N)")
 
         x = input()
+
         if x in ["Y", "y", "Yes", "yes"]:
-            self.container_client.delete_blob(blob=filename)
-            print(f"{filename} has been deleted")
+            self.container_client.delete_blob(blob=blobname)
+            print(f"{blobname} has been deleted")
         else:
-            print(f"{filename} has not been deleted")
-
-
+            print(f"{blobname} has not been deleted")
 
     def get_blob_url_with_sas(self, blob_name: str, expiry_days: int = 28) -> str:
         """Generate a URL with a SAS token for the given blob name.
@@ -235,147 +251,149 @@ class Blobs:
 
         return blob_url_with_sas
 
-    def compare_files(self, localpath="data"):
-        """Compare filenames in local storage and blob storage.
+    def _get_file_sync_info(self, 
+        container_path: Path,        
+        extensions_to_include) -> FileSyncInfo:
+        """Get the local and remote files to compare.
 
         Parameters
         ----------
-        localpath : str
-            The name of local path where files are stored.
+        container_path : Path
+            The path to the local folder which contains all the files we want to compare to the 
+            remote blob container.
+        
+        extensions_to_include : Set[str]
+            The file extensions to include.
 
-        Raises
-        ------
-        FileNotFoundError
-            If `local path` does not exist.
+        Returns
+        -------
+        FileSyncInfo
+            A named tuple containing: local files, blob files, files missing locally, files missing 
+            in the blob container, and files that exist both locally and in the blob
         """
 
-        blob_files = {x.name for x in self.blobs_list()}
-        local_files = {y for y in os.listdir(localpath) if not y.startswith(".")}
-
+        # Get all files recursively with specified extensions, excluding those that start with "_"
+        local_files = { str(f.relative_to(container_path)).replace("\\", "/")
+                        for f in container_path.rglob("*") 
+                        if f.is_file() 
+                        and not f.name.startswith("_")
+                        and not f.name.startswith(".")
+                        and f.suffix in extensions_to_include }
+        
+        blob_files = { x.name for x in self.blobs_list()
+                        if x.name.endswith(tuple(extensions_to_include)) }
+                
+        # Find any local missing files
         local_missing = blob_files - local_files
-        if local_missing == set():
-            print("All BLOB files are on your LOCAL machine.")
-        if not local_missing == set():
-            print(
-                f"These BLOB files are missing from your LOCAL machine: \n{local_missing}"
-            )
-            print(
-                f'\nTo download all use:\n.sync(direction="download", which="missing", choose=False, localpath="data")'
-            )
 
-        print("\n##########\n")
-
+        # Find any blob missing files
         blob_missing = local_files - blob_files
-        if blob_missing == set():
-            print("All LOCAL files are in BLOB storage.")
-        if not blob_missing == set():
-            print(f"These LOCAL files are missing from BLOB storage: \n{blob_missing}")
-            print(
-                f'\nTo upload all use:\n.sync(direction="upload", which="missing", choose=False, localpath="data")'
-            )
 
-        print("\n##########\n")
+        # Find files which exist locally and in the blob container
+        in_both = local_files.intersection(blob_files)
 
-        in_both = blob_files.intersection(local_files)
-        if in_both == set():
-            print("No files have a copy in both BLOB and LOCAL storage.")
-        if not in_both == set():
-            print(
-                f"These files have a copy in both BLOB and LOCAL storage: \n{in_both}"
-            )
-
-    def sync(self, direction="", which="missing", choose=False, localpath="data"):
-        """Download and upload batches of files between local and blob storage.
+        return FileSyncInfo(local_files, blob_files, local_missing, blob_missing, in_both)
+    
+    def diff(self, local_container_path: Path | str = None, 
+             extensions_to_include = { ".csv", ".xls", ".xlsx", ".zip" }):
+        """Compare local files with those in this blob container.
 
         Parameters
         ----------
-        direction : str
-            upload = upload from local to blob storage.
-            download = download from blob to local storage.
+        local_container_path : Path | str, optional
+            The path to the local folder which contains all the files we want to compare to the 
+            remote blob container. If none is specified then the current working directory is used.
 
-        which : str, default is 'missing'
-            missing = download or upload files not present in both local and blob storage.
-            existing = download or upload files that are present in both local and blob storage.
-            all = download or upload all files.
-
-        choose : bool, default is False
-            False = download or upload files without human input.
-            True = human input required to choose which files to download or upload
-
-        localpath : str
-            The local filepath
-
-        Raises
-        ------
-        ERROR
-            If incorrect keyword used.
-
-        FileNotFoundError
-            If `local path` does not exist.
+        extensions_to_include : Set[str], optional
+            The file extensions to include. We typically only want to check data files so .csv, 
+            .xls, .xlsx, and .zip are included by default.
         """
 
-        # Keyword validation.
-        if (
-            (which not in ["missing", "existing", "all"])
-            or (choose not in [True, False])
-            or (direction not in ["upload", "download"])
-        ):
-            return print(
-                "ERROR:  Incorrect keyword assignment.\n\
-            direction must be, 'upload' or 'download' \n\
-            which must be 'missing', 'existing' or 'all'.\n\
-            choose must be True or False."
-            )
+        # Set the local container to the current working directory if none is specified
+        local_container_path = (Path(local_container_path) 
+            if local_container_path is not None else Path.cwd())
 
-        # Run function twice if keyword "all" used.
-        if which == "all":
-            self.sync(
-                direction=direction,
-                which="existing",
-                choose=choose,
-                localpath=localpath,
-            )
-            self.sync(
-                direction=direction, which="missing", choose=choose, localpath=localpath
-            )
-            return
+        fsi = self._get_file_sync_info(local_container_path, extensions_to_include)
 
-        # Find blob and local files
-        blob_files = {x.name for x in self.blobs_list()}
-        local_files = {y for y in os.listdir(localpath) if not y.startswith(".")}
+        messages = []
 
-        # Assigning which files to sync
-        if which == "existing":
-            files = local_files.intersection(blob_files)
+        messages.append("All blobs exist on your local machine." if fsi.local_missing == set() else \
+            f"These blobs are missing from your local machine: \n{fsi.local_missing}")
+        
+        messages.append("All local files exist in blob storage." if fsi.blob_missing == set() else \
+            f"These local files are missing from blob storage: \n{fsi.blob_missing}")
+        
+        messages.append("No files exist in both blob and local storage." if fsi.in_both == set() else \
+            f"These files exist in both blob and local storage: \n{fsi.in_both}")
 
-        if direction == "upload" and which == "missing":
-            files = local_files - blob_files
+        print("\n\n".join(messages))
 
-        if direction == "download" and which == "missing":
-            files = blob_files - local_files
+    def batch_download(self, container_path: Path | str = None, 
+        extensions_to_include = { ".csv", ".xls", ".xlsx", ".zip" },
+        is_update_existing = True, is_add_missing = True, is_confirm=True):
+        
+        # Set the local container to the current working directory if none is specified
+        container_path = Path(container_path) if container_path is not None else Path.cwd()
 
-        # Behaviour if no files are found.
-        if files == set():
-            return print(f"There are no {which} files to {direction}.")
+        fsi  = self._get_file_sync_info(container_path, extensions_to_include) 
+        
+        blobs_to_download = set()
 
-        # Behaviour if files are found
-        if not files == set():
-            call_dict = {
-                "upload": lambda w: self.upload(w, overwrite=True),
-                "download": self.download,
-            }
+        if is_update_existing:
+            blobs_to_download = blobs_to_download.union(fsi.in_both)
 
-            if choose == False:
-                print(f"\nAbout to {direction} the {which} files.")
-                list(map(lambda x: call_dict[direction](x), files))
+        if is_add_missing:
+            blobs_to_download = blobs_to_download.union(fsi.local_missing)
 
-            elif choose == True:
-                print(f"Choose the {which} files you want to {direction}.")
-                for i in files:
-                    choice = input(
-                        f"Would you like to {direction} the {which} file: {i}?"
-                    )
-                    if choice.lower() in {"yes", "y", "yeah"}:
-                        call_dict[direction](i)
-                    else:
-                        print(f"\n{i} not {direction}ed")
+        if blobs_to_download == set():
+            print("There are no files to download.")
+        else:
+            print("Starting to download the files.")
+                
+        for blob in blobs_to_download:
+            if is_confirm:
+                choice = input(
+                    f"Would you like to download the file: {blob}?"
+                )
+                if choice.lower() in {"yes", "y"}:
+                    self.download(blob, container_path)
+                else:
+                    print(f"\n{blob} not downloaded")
+            else:
+                self.download(blob, container_path)
+
+    def batch_upload(self, container_path: Path | str = None, 
+        extensions_to_include = { ".csv", ".xls", ".xlsx", ".zip" },
+        is_update_existing = True, is_add_missing = True, is_confirm = True,
+        overwrite = True):
+        
+        # Set the local container to the current working directory if none is specified
+        container_path = Path(container_path) if container_path is not None else Path.cwd()
+
+        fsi  = self._get_file_sync_info(container_path, extensions_to_include) 
+        
+        files_to_upload = set()
+
+        if is_update_existing:
+            files_to_upload = files_to_upload.union(fsi.in_both)
+
+        if is_add_missing:
+            files_to_upload = files_to_upload.union(fsi.blob_missing)
+
+        if files_to_upload == set():
+            print("There are no files to upload.")
+        else:
+            print("Starting to upload the files.")
+
+        for relative_filepath in files_to_upload:
+            if is_confirm:
+                choice = input(
+                    f"Would you like to upload the file: {relative_filepath}?"
+                )
+                if choice.lower() in {"yes", "y"}:
+                    absolute_filepath = container_path / relative_filepath
+                    self.upload(absolute_filepath, overwrite, container_path)
+                else:
+                    print(f"\n{blob} not uploaded")
+            else:
+                self.upload(blob, overwrite, container_path)
