@@ -6,6 +6,8 @@ import os
 
 from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions
 from datetime import datetime, timedelta
+from pathlib import Path
+
 
 class Blobs:
     """
@@ -15,7 +17,7 @@ class Blobs:
 
     Attributes
     ----------
-    repo_name : str
+    container_name : str
         The name of the repository which is used as the blob container name.
 
     Methods
@@ -36,19 +38,19 @@ class Blobs:
     local_path = "data"
 
     def __init__(
-        self, repo_name, connection_string="AZURE_STORAGE_EEDIDATA_CONNECTION_STRING"
+        self, container_name, connection_string="AZURE_STORAGE_EEDIDATA_CONNECTION_STRING"
     ):
         """initialisation
 
         Parameters
         ----------
-        repo_name : str
+        container_name : str
             The name of the repository which is used as the blob container name.
         """
 
         self.__set_blob_service_client(connection_string)
 
-        self.__get_or_set_container(repo_name)
+        self.__get_or_set_container(container_name)
 
     def __set_blob_service_client(self, connection_string):
         """The connection string is set as an environment variable on the user's computer.
@@ -85,36 +87,48 @@ class Blobs:
 
         return list(self.container_client.list_blobs())
 
-    def upload(self, filename, overwrite=False):
+    def upload(self, filepath: Path | str, overwrite=False, container_path: Path | str | None = None):
         """Upload a local file to the container.
 
         Parameters
         ----------
-        filename : str
-            The name of the file to upload.
+        filepath : Path | str
+            The path to the file you want to upload.
 
         overwrite : bool, optional
             True = overwrite, False = do not overwrite.
+
+        container_path : Path | str, optional
+            The path to a containing folder from which the relative path will be calculated to name 
+            the blob.
 
         Raises
         ------
         FileNotFoundError
             If `filename` does not exist locally.
         """
+        filepath = Path(filepath)
+        
+        # If no container is defined we will simply use the filename for the blob name.
+        if container_path is None:
+            container_path = filepath.parent
 
-        local_file_path = os.path.join(self.local_path, filename)
+        # The relative filepath is used as the name for the blob.
+        relative_filepath = str(filepath.relative_to(container_path))
+        
+        print(f"\nUploading blob from: {filepath}")
 
-        print("\nUploading blob from \n\t" + local_file_path)
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), filepath.name)
 
-        if not os.path.exists(local_file_path):
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), filename)
+        # Create a blob client using the relative filepath as the name for the blob
+        blob_client = self.container_client.get_blob_client(blob=relative_filepath)
 
-        # Create a blob client using the local file name as the name for the blob
-        blob_client = self.container_client.get_blob_client(blob=filename)
-
-        with open(local_file_path, "rb") as data:
+        with open(filepath, "rb") as data:
             blob_client.upload_blob(data, overwrite=overwrite)
 
+        return blob_client
+    
     def download(self, filename):
         """Download a file from the container.
 
@@ -168,8 +182,10 @@ class Blobs:
         else:
             print(f"{filename} has not been deleted")
 
-    def get_sas_token(self, blob_name):
-        """Generate a SAS token for a blob.
+
+
+    def get_blob_url_with_sas(self, blob_name: str, expiry_days: int = 28) -> str:
+        """Generate a URL with a SAS token for the given blob name.
 
         Parameters
         ----------
@@ -179,10 +195,15 @@ class Blobs:
         Returns
         -------
         str
-            The SAS token.
-        """
+            The URL with a SAS token for the blob.
+        """ 
+        
+        # Blob names can contain folders, fix any Windows style slashes
+        blob_name = blob_name.replace("\\", "/")
+
         # Set the expiry time and permissions for the SAS token
-        sas_token_expiry = datetime.utcnow() + timedelta(hours=24*28)
+        sas_token_expiry = datetime.utcnow() + timedelta(days=expiry_days)
+        sas_start_time = datetime.utcnow() - timedelta(minutes=5)
         sas_permissions = BlobSasPermissions(read=True, write=False)
 
         container_name = self.container_client.container_name
@@ -194,14 +215,25 @@ class Blobs:
             blob_name=blob_name,
             account_key=self.blob_service_client.credential.account_key,
             permission=sas_permissions,
+            start=sas_start_time,
             expiry=sas_token_expiry
         )
 
-        # Construct the full URL with SAS token
-        blob_url_with_sas = f"{self.blob_service_client.primary_endpoint}/{container_name}/{blob_name}?{sas_token}"
+        # The SAS token includes multiple query parameters in a string so is it easier to form the 
+        # URL manually rather than using 
+        primary_endpoint = self.blob_service_client.primary_endpoint
         
-        return blob_url_with_sas
+        # Ensure the base URL ends with a slash
+        if not primary_endpoint.endswith("/"):
+            primary_endpoint += "/"
 
+        # Construct the blob URL
+        blob_url = f"{primary_endpoint}{container_name}/{blob_name}"
+
+        # Add the query parameters to the URL
+        blob_url_with_sas = f"{blob_url}?{sas_token}"
+
+        return blob_url_with_sas
 
     def compare_files(self, localpath="data"):
         """Compare filenames in local storage and blob storage.
