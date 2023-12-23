@@ -19,9 +19,12 @@ azure-storage-blob = "^12.19.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.1.9"
-pipreqs = "^0.4.13"
 pre-commit = "^3.6.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff.lint]
+# On top of the default `select` (`E`, `F`), enable isort (`I`) because it is enabled "on save" in the VS Code extension
+extend-select = ["I"]
