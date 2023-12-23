@@ -6,26 +6,24 @@ import re
 import string
 import sys
 from datetime import datetime, timezone
-from typing import Union
 from pathlib import Path
-import inflect
+from typing import Union
 
+import inflect
 import pandas as pd
 from azure.data.tables import TableServiceClient
 
 p = inflect.engine()
 
 if sys.platform == "darwin" and platform.processor() == "arm":
-    import pymssql
+    import pymssql  # noqa: F401
 else:
     import pyodbc
 
-class MarkdownReport:
 
+class MarkdownReport:
     def __init__(self, title):
-        self.report = [
-            f"# {title}"
-        ]
+        self.report = [f"# {title}"]
 
     def add_heading(self, heading, level=1, anchor=None):
         heading = f"{'#' * level} {heading}"
@@ -63,7 +61,10 @@ class MarkdownReport:
         self.add_table(headers, formatted_definitions)
 
     def add_table(self, headers, rows):
-        table = [f"| {' | '.join(headers)} |", f"| {' | '.join(['---'] * len(headers))} |"]
+        table = [
+            f"| {' | '.join(headers)} |",
+            f"| {' | '.join(['---'] * len(headers))} |",
+        ]
         for row in rows:
             table.append(f"| {' | '.join(str(item) for item in row)} |")
         self.report.append("\n".join(table))
@@ -92,7 +93,9 @@ class MarkdownReport:
 
         return toc_anchors
 
-    def _generate_table_of_contents(self, headings_dict, toc_markdown="", toc_anchors=dict(), level=0):
+    def _generate_table_of_contents(
+        self, headings_dict, toc_markdown="", toc_anchors=dict(), level=0
+    ):
         """A (too) simple toc generator which can fail if any headings have the same name.
 
         Args:
@@ -120,13 +123,12 @@ class MarkdownReport:
         index = 1
 
         for heading in headings_dict:
-            anchor = heading.lower().replace("/","_").replace(" ","-")
+            anchor = heading.lower().replace("/", "_").replace(" ", "-")
 
             toc_markdown += f"{'    ' * level}{index}. [{heading}](#{anchor})\n"
 
             # Generate a unique anchor for the heading
-            assert toc_anchors.get(heading) == None, \
-                "This heading already exists, use unique names for headings (or write a better toc \
+            assert toc_anchors.get(heading) == None, "This heading already exists, use unique names for headings (or write a better toc \
                 generator)."
 
             toc_anchors[heading] = anchor
@@ -134,7 +136,9 @@ class MarkdownReport:
             # Recursively cycle through subheadings
             subheadings_dict = headings_dict[heading]
             if subheadings_dict:
-                toc_markdown, toc_anchors = self._generate_table_of_contents(subheadings_dict, toc_markdown, toc_anchors, level=level+1)
+                toc_markdown, toc_anchors = self._generate_table_of_contents(
+                    subheadings_dict, toc_markdown, toc_anchors, level=level + 1
+                )
 
             index += 1
 
@@ -144,6 +148,7 @@ class MarkdownReport:
         with open(filepath, "w", encoding="utf-8") as f:
             f.write("\n\n".join(self.report))
 
+
 class DataSource:
     """
     A class for managing sources of data for the data extract. The sources are read from SQL or
@@ -151,10 +156,17 @@ class DataSource:
     Various sources can be combined to create extracts.
     """
 
-    def __init__(self, name, dataframe, parents=None, glossary=dict(),
-                 columns_to_entities=dict(), whitelist=set(), data_extract=None,
-                 description=None):
-        
+    def __init__(
+        self,
+        name,
+        dataframe,
+        parents=None,
+        glossary=dict(),
+        columns_to_entities=dict(),
+        whitelist=set(),
+        data_extract=None,
+        description=None,
+    ):
         self.name = name
         self.description = description
         self.df = dataframe
@@ -173,11 +185,17 @@ class DataSource:
     def fromMerge(cls, name, parent_data_sources, merge_func, **kwargs):
         dataframe = merge_func(parent_data_sources)
 
-        return cls(name=name, dataframe=dataframe, parents=parent_data_sources, **kwargs)
+        return cls(
+            name=name, dataframe=dataframe, parents=parent_data_sources, **kwargs
+        )
 
     @classmethod
     def fromSQL(
-        cls, name, sql, connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING", **kwargs
+        cls,
+        name,
+        sql,
+        connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING",
+        **kwargs,
     ):
         connection_string = os.getenv(connection_string_name)
         cnxn = pyodbc.connect(connection_string)
@@ -201,7 +219,11 @@ class DataSource:
 
     @classmethod
     def fromSQLFile(
-        cls, name, filename, connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING", **kwargs
+        cls,
+        name,
+        filename,
+        connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING",
+        **kwargs,
     ):
         connection_string = os.getenv(connection_string_name)
         cnxn = pyodbc.connect(connection_string)
@@ -219,13 +241,14 @@ class DataSource:
         return cls(name=name, dataframe=dataframe, **kwargs)
 
     @classmethod
-    def fromTableStorage(cls, name, table_name, query_filter, connection_string_name, **kwargs):
+    def fromTableStorage(
+        cls, name, table_name, query_filter, connection_string_name, **kwargs
+    ):
         connection_string = os.getenv(connection_string_name)
         table_service_client = TableServiceClient.from_connection_string(
             conn_str=connection_string
         )
-        table_client = table_service_client.get_table_client(
-            table_name=table_name)
+        table_client = table_service_client.get_table_client(table_name=table_name)
 
         entities = table_client.query_entities(query_filter)
         dataframe = pd.DataFrame(entities)
@@ -261,38 +284,41 @@ class DataSource:
         ), "You can only export data which has been pseudonomised."
 
         if export_path is None and self.data_extract:
-            export_path = (self.data_extract.data_extract_path /
-                self.data_extract.public_folder / "data")
+            export_path = (
+                self.data_extract.data_extract_path
+                / self.data_extract.public_folder
+                / "data"
+            )
 
         if isinstance(export_path, str):
             export_path = Path(export_path)
 
-        self.df.to_csv(str(export_path /  f"{self.name}.csv"), index=False)
+        self.df.to_csv(str(export_path / f"{self.name}.csv"), index=False)
 
     def update_glossary(self, d):
         """
         Update the glossary with additional fields. Existing entries will be overwritten.
         """
         self.glossary = dict(self.glossary, **d)
-    
 
     def _get_summary_statistics_field(self, field):
-        
         def _get_common_stats(field):
             return {
                 "field": field.name,
                 "count": field.count(),
                 "nunique": field.nunique(),
-                "non-null": field.notnull().sum()
+                "non-null": field.notnull().sum(),
             }
 
         def _handle_int_stats(field):
             stats = _get_common_stats(field)
-            stats.update({
-                "type": "int",
-                "min": field.min(),
-                "max": field.max(),
-            })
+            stats.update(
+                {
+                    "type": "int",
+                    "min": field.min(),
+                    "max": field.max(),
+                }
+            )
 
             if stats["nunique"] < 10:
                 stats["value_counts"] = str(field.value_counts().to_dict())
@@ -305,45 +331,44 @@ class DataSource:
                 return _handle_int_stats(field)
 
             stats = get_common_stats(field)
-            stats.update({
-                "type": "float",
-                "min": field.min(),
-                "25%": field.quantile(0.25),
-                "50%": field.quantile(0.50),
-                "75%": field.quantile(0.75),
-                "max": field.max()
-            })
-            
+            stats.update(
+                {
+                    "type": "float",
+                    "min": field.min(),
+                    "25%": field.quantile(0.25),
+                    "50%": field.quantile(0.50),
+                    "75%": field.quantile(0.75),
+                    "max": field.max(),
+                }
+            )
+
             return stats
 
         def _handle_bool_stats(field):
             stats = _get_common_stats(field)
-            stats.update({
-                "type": "bool",
-                "value_counts": str(field.value_counts().to_dict())
-            })
-            
+            stats.update(
+                {"type": "bool", "value_counts": str(field.value_counts().to_dict())}
+            )
+
             return stats
 
         def _handle_datetime_stats(field):
             stats = _get_common_stats(field)
-            stats.update({
-                "type": "datetime",
-                "min": field.min(),
-                "max": field.max()
-            })
+            stats.update({"type": "datetime", "min": field.min(), "max": field.max()})
 
             return stats
 
         def _handle_str_stats(field):
             stats = _get_common_stats(field)
-            stats.update({
-                "type": "object",
-                "min_length": field.str.len().min(),
-                "max_length": field.str.len().max(),
-                "min_words": field.str.count(" ").min() + 1,
-                "max_words": field.str.count(" ").max() + 1
-            })
+            stats.update(
+                {
+                    "type": "object",
+                    "min_length": field.str.len().min(),
+                    "max_length": field.str.len().max(),
+                    "min_words": field.str.count(" ").min() + 1,
+                    "max_words": field.str.count(" ").max() + 1,
+                }
+            )
 
             if stats["nunique"] < 10:
                 stats["value_counts"] = str(field.value_counts().to_dict())
@@ -352,12 +377,10 @@ class DataSource:
 
         def _handle_default(field):
             stats = _get_common_stats(field)
-            stats.update({
-                "type": "unknown"
-            })
+            stats.update({"type": "unknown"})
 
             return stats
-        
+
         dtype = field.dtype
 
         if pd.api.types.is_integer_dtype(dtype):
@@ -381,7 +404,6 @@ class DataSource:
         return pd.DataFrame(stats)
 
     def add_markdown_report(self, markdown_report, anchor):
-
         plural_entity_name = p.plural(self.name)
 
         df = self.df
@@ -394,7 +416,9 @@ class DataSource:
         markdown_report.add_heading("Glossary", 4)
 
         if self.glossary:
-            formatted_glossary = {k: v.replace("\n\n", "<br><br>") for k, v in self.glossary.items()}
+            formatted_glossary = {
+                k: v.replace("\n\n", "<br><br>") for k, v in self.glossary.items()
+            }
             markdown_report.add_definitions(formatted_glossary)
 
         markdown_report.add_heading("Statistics", 4)
@@ -405,8 +429,9 @@ class DataSource:
 
         markdown_report.add_heading("Sample", 4)
 
-        if (self.df.shape[0] > 0):
+        if self.df.shape[0] > 0:
             markdown_report.add_dataframe(self.df.sample(3))
+
 
 class DataExtract:
     """
@@ -425,7 +450,7 @@ class DataExtract:
             A longer explanation of what this particular extract is, why it was created, who it is
             for, etc.
         container_path : str|Path
-            The path to the folder which contains all data extracts. 
+            The path to the folder which contains all data extracts.
 
         """
 
@@ -441,7 +466,6 @@ class DataExtract:
         self.__stamp()
 
         self.set_paths_and_filenames()
-
 
     def __str__(self):
         return (
@@ -465,7 +489,7 @@ class DataExtract:
     def set_paths_and_filenames(self):
         """
         Sets the path and filenames for the data extract.
-        
+
         Data is stored in the following format:
         container_path/
             - {name}-{YYYYmmDDHHMM}-{id}
@@ -491,16 +515,24 @@ class DataExtract:
                     - README.md
                     - img
         """
-        self.name_date_id = f"{self.name}-{self.datetime.strftime('%Y%m%d%H%M')}-{self.id}"
+        self.name_date_id = (
+            f"{self.name}-{self.datetime.strftime('%Y%m%d%H%M')}-{self.id}"
+        )
         self.data_extract_path = self.container_path / self.name_date_id
         self.public_folder = f"{self.name_date_id}-PUBLIC"
         self.public_archive_filename = f"{self.name_date_id}-PUBLIC.zip"
         self.private_filename = f"{self.name_date_id}-PRIVATE.pkl"
 
-        (self.data_extract_path / self.public_folder / "data").mkdir(parents=True, exist_ok=True)
-        (self.data_extract_path / self.public_folder / "img").mkdir(parents=True, exist_ok=True)
-        (self.data_extract_path / self.public_folder / "docs" / "img").mkdir(parents=True, exist_ok=True)
-        
+        (self.data_extract_path / self.public_folder / "data").mkdir(
+            parents=True, exist_ok=True
+        )
+        (self.data_extract_path / self.public_folder / "img").mkdir(
+            parents=True, exist_ok=True
+        )
+        (self.data_extract_path / self.public_folder / "docs" / "img").mkdir(
+            parents=True, exist_ok=True
+        )
+
     def add_data_source(self, data_source):
         self.data_sources[data_source.name] = data_source
         data_source.set_data_extract(self)
@@ -528,7 +560,7 @@ class DataExtract:
         Save the data extract.
         """
         filepath = str(self.data_extract_path / self.private_filename)
-        
+
         with open(filepath, "wb") as file:
             pickle.dump(self, file)
 
@@ -565,17 +597,19 @@ class DataExtract:
         """
         Archive and upload the data extract to Azure Blob Storage.
         """
-        folder_to_archive_path = self.data_extract.data_extract_path / self.data_extract.public_folder
-        archive_file_path = self.data_extract.data_extract_path / self.data_extract.public_archive_filename
+        folder_to_archive_path = (
+            self.data_extract.data_extract_path / self.data_extract.public_folder
+        )
+        archive_file_path = (
+            self.data_extract.data_extract_path
+            / self.data_extract.public_archive_filename
+        )
 
         zip_folder(folder_to_archive_path, archive_file_path)
 
         blob_name = os.path.basename(os.getcwd()).replace("_", "-")
         blob = Blobs(container_name)
         blob.upload_file(archive_file_path)
-
-        
-
 
     @staticmethod
     def load(filepath: Union[str, Path]):
@@ -626,8 +660,7 @@ class DataExtract:
         columns_to_entities = data_source.columns_to_entities
         whitelist = data_source.whitelist
 
-        id_columns = {
-            i for i in dataframe.columns if re.search(r"[i|I][d|D]$", i)}
+        id_columns = {i for i in dataframe.columns if re.search(r"[i|I][d|D]$", i)}
 
         mapped_columns = set(columns_to_entities.keys())
 
@@ -679,8 +712,7 @@ class DataExtract:
         new_real_ids = real_ids[~real_ids.isin(existing_real_ids)]
 
         start_pseudo_id = (
-            max(real_id_to_pseudo_id.values()) +
-            1 if real_id_to_pseudo_id != {} else 0
+            max(real_id_to_pseudo_id.values()) + 1 if real_id_to_pseudo_id != {} else 0
         )
 
         new_real_id_to_pseudo_id = {
@@ -688,8 +720,7 @@ class DataExtract:
             for i, new_real_id in enumerate(new_real_ids)
         }
 
-        real_id_to_pseudo_id = {
-            **real_id_to_pseudo_id, **new_real_id_to_pseudo_id}
+        real_id_to_pseudo_id = {**real_id_to_pseudo_id, **new_real_id_to_pseudo_id}
 
         assert len(real_id_to_pseudo_id.keys()) == len(
             set(real_id_to_pseudo_id.values())
@@ -708,29 +739,33 @@ class DataExtract:
         # Add a table of contents
         table_of_contents = {
             "Introduction": None,
-            "Data Sources": { k: None for k in self.data_sources.keys() }
+            "Data Sources": {k: None for k in self.data_sources.keys()},
         }
 
         anchors = markdown_report.add_table_of_contents(table_of_contents)
 
         # Add some high level data extract details.
-        markdown_report.add_definitions([
-            ["Name", self.name],
-            ["Id", self.id],
-            ["Datetime", self.datetime]
-        ])
+        markdown_report.add_definitions(
+            [["Name", self.name], ["Id", self.id], ["Datetime", self.datetime]]
+        )
 
         # Add an introduction
-        markdown_report.add_heading("Introduction", level=1, anchor=anchors["Introduction"])
+        markdown_report.add_heading(
+            "Introduction", level=1, anchor=anchors["Introduction"]
+        )
         markdown_report.add_markdown(self.description)
-        
+
         # Add the data sources
-        markdown_report.add_heading("Data Sources", level=1, anchor=anchors["Data Sources"])
+        markdown_report.add_heading(
+            "Data Sources", level=1, anchor=anchors["Data Sources"]
+        )
         for k, v in self.data_sources.items():
             v.add_markdown_report(markdown_report, anchors[k])
 
         # Save the report
-        markdown_report.save(self.data_extract_path / self.public_folder / "docs" / "README.md")
+        markdown_report.save(
+            self.data_extract_path / self.public_folder / "docs" / "README.md"
+        )
 
     @staticmethod
     def get_data_source_from_list(name, data_sources):
@@ -738,4 +773,3 @@ class DataExtract:
             return next(x for x in data_sources if x.name == name)
         except:
             print(f"There is no data source with the name {name}.")
-    
