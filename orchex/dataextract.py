@@ -12,7 +12,6 @@ import inflect
 
 import pandas as pd
 from azure.data.tables import TableServiceClient
-from IPython.display import Markdown, display
 
 p = inflect.engine()
 
@@ -20,9 +19,6 @@ if sys.platform == "darwin" and platform.processor() == "arm":
     import pymssql
 else:
     import pyodbc
-
-def printmd(string):
-    display(Markdown(string))
 
 class MarkdownReport:
 
