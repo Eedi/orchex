@@ -442,6 +442,6 @@ class Blobs:
                     absolute_filepath = container_path / relative_filepath
                     self.upload(absolute_filepath, overwrite, container_path)
                 else:
-                    print(f"\n{blob} not uploaded")
+                    print(f"\n{relative_filepath} not uploaded")
             else:
-                self.upload(blob, overwrite, container_path)
+                self.upload(relative_filepath, overwrite, container_path)
