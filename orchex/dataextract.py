@@ -5,6 +5,7 @@ import random
 import re
 import string
 import sys
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Union
@@ -12,6 +13,7 @@ from typing import Union
 import inflect
 import pandas as pd
 from azure.data.tables import TableServiceClient
+from blobs import Blobs
 
 p = inflect.engine()
 
@@ -19,6 +21,15 @@ if sys.platform == "darwin" and platform.processor() == "arm":
     import pymssql  # noqa: F401
 else:
     import pyodbc
+
+
+def zip_folder(folder_to_archive_path: Union[Path, str], archive_file_path):
+    folder_to_archive_path = Path(folder_to_archive_path)
+    archive_file_path = Path(archive_file_path)
+
+    with zipfile.ZipFile(archive_file_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+        for fp in folder_to_archive_path.glob("**/*"):
+            zipf.write(fp, arcname=fp.relative_to(folder_to_archive_path))
 
 
 class MarkdownReport:
@@ -128,7 +139,7 @@ class MarkdownReport:
             toc_markdown += f"{'    ' * level}{index}. [{heading}](#{anchor})\n"
 
             # Generate a unique anchor for the heading
-            assert toc_anchors.get(heading) == None, "This heading already exists, use unique names for headings (or write a better toc \
+            assert toc_anchors.get(heading) is None, "This heading already exists, use unique names for headings (or write a better toc \
                 generator)."
 
             toc_anchors[heading] = anchor
@@ -280,7 +291,7 @@ class DataSource:
             A csv with the name of the data source will be saved to this folder.
         """
         assert (
-            self.is_pseudonomised == True
+            self.is_pseudonomised is True
         ), "You can only export data which has been pseudonomised."
 
         if export_path is None and self.data_extract:
@@ -330,7 +341,7 @@ class DataSource:
             if field.dropna().apply(float.is_integer).all():
                 return _handle_int_stats(field)
 
-            stats = get_common_stats(field)
+            stats = _get_common_stats(field)
             stats.update(
                 {
                     "type": "float",
@@ -404,10 +415,6 @@ class DataSource:
         return pd.DataFrame(stats)
 
     def add_markdown_report(self, markdown_report, anchor):
-        plural_entity_name = p.plural(self.name)
-
-        df = self.df
-
         markdown_report.add_heading(self.name, 3, anchor)
 
         if self.description:
@@ -564,18 +571,6 @@ class DataExtract:
         with open(filepath, "wb") as file:
             pickle.dump(self, file)
 
-    import zipfile
-    from pathlib import Path
-    from typing import Union
-
-    def zip_folder(folder_to_archive_path: Union[Path, str], archive_file_path):
-        folder_to_archive_path = Path(folder_to_archive_path)
-        archive_file_path = Path(archive_file_path)
-
-        with zipfile.ZipFile(archive_file_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-            for fp in folder_to_archive_path.glob("**/*"):
-                zipf.write(fp, arcname=fp.relative_to(folder_to_archive_path))
-
     def export(self, data_source_names=None):
         """
         Export the data extract as a csv. The intention is that this can be shared with others and
@@ -607,7 +602,6 @@ class DataExtract:
 
         zip_folder(folder_to_archive_path, archive_file_path)
 
-        blob_name = os.path.basename(os.getcwd()).replace("_", "-")
         blob = Blobs(container_name)
         blob.upload_file(archive_file_path)
 
@@ -653,7 +647,7 @@ class DataExtract:
         assert data_source is not None, "The data source name is not found."
 
         assert (
-            data_source.is_pseudonomised == False
+            data_source.is_pseudonomised is False
         ), "This data frame has already been pseudonomised."
 
         dataframe = data_source.df
@@ -726,8 +720,6 @@ class DataExtract:
             set(real_id_to_pseudo_id.values())
         ), "At least two keys are mapped to the same value."
 
-        pseudo_id_to_real_id = {y: x for x, y in real_id_to_pseudo_id.items()}
-
         return real_id_to_pseudo_id
 
     def generate_markdown_report(self):
@@ -771,5 +763,5 @@ class DataExtract:
     def get_data_source_from_list(name, data_sources):
         try:
             return next(x for x in data_sources if x.name == name)
-        except:
+        except StopIteration:
             print(f"There is no data source with the name {name}.")
