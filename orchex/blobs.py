@@ -3,6 +3,7 @@ import os
 from collections import namedtuple
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Set
 
 from azure.storage.blob import BlobSasPermissions, BlobServiceClient, generate_blob_sas
 
@@ -319,7 +320,7 @@ class Blobs:
 
     def diff(
         self,
-        local_container_path: Path | str = None,
+        local_container_path: Path | str | None = None,
         extensions_to_include={".csv", ".xls", ".xlsx", ".zip"},
     ):
         """Compare local files with those in this blob container.
@@ -368,7 +369,7 @@ class Blobs:
 
     def batch_download(
         self,
-        container_path: Path | str = None,
+        container_path: Path | str | None = None,
         extensions_to_include={".csv", ".xls", ".xlsx", ".zip"},
         is_update_existing=True,
         is_add_missing=True,
@@ -381,7 +382,7 @@ class Blobs:
 
         fsi = self._get_file_sync_info(container_path, extensions_to_include)
 
-        blobs_to_download = set()
+        blobs_to_download: Set[str] = set()
 
         if is_update_existing:
             blobs_to_download = blobs_to_download.union(fsi.in_both)
@@ -406,7 +407,7 @@ class Blobs:
 
     def batch_upload(
         self,
-        container_path: Path | str = None,
+        container_path: Path | str | None = None,
         extensions_to_include={".csv", ".xls", ".xlsx", ".zip"},
         is_update_existing=True,
         is_add_missing=True,
@@ -420,7 +421,7 @@ class Blobs:
 
         fsi = self._get_file_sync_info(container_path, extensions_to_include)
 
-        files_to_upload = set()
+        files_to_upload: Set[str] = set()
 
         if is_update_existing:
             files_to_upload = files_to_upload.union(fsi.in_both)

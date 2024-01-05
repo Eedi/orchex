@@ -21,6 +21,9 @@ azure-storage-blob = "^12.19.0"
 ruff = "^0.1.9"
 pre-commit = "^3.6.0"
 ipykernel = "^6.27.1"
+pylint = {extras = ["spelling"], version = "^3.0.3"}
+pytest = "^7.4.3"
+mypy = "^1.8.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -29,3 +32,21 @@ build-backend = "poetry.core.masonry.api"
 [tool.ruff.lint]
 # On top of the default `select` (`E`, `F`), enable isort (`I`) because it is enabled "on save" in the VS Code extension
 extend-select = ["I"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_unused_configs = true
+exclude = [
+    "orchex/dataextract.py",        # Progressively adding types
+    "orchex/helper_functions.py"    # Progressively adding types
+]
+
+[[tool.mypy.overrides]]
+module = "orchex.blobs"
+disallow_untyped_defs = false
+
+[[tools.mypy.overrides]]
+module = [
+    "pandas"
+]
+ignore_missing_imports = true
