@@ -37,16 +37,11 @@ extend-select = ["I"]
 python_version = "3.12"
 warn_unused_configs = true
 exclude = [
-    "orchex/dataextract.py",        # Progressively adding types
-    "orchex/helper_functions.py"    # Progressively adding types
+    "orchex/dataextract.py",
+    "orchex/helper_functions.py"
 ]
 
 [[tool.mypy.overrides]]
 module = "orchex.blobs"
 disallow_untyped_defs = false
 
-[[tools.mypy.overrides]]
-module = [
-    "pandas"
-]
-ignore_missing_imports = true
