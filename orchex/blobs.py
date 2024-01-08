@@ -1,3 +1,5 @@
+"""A class for managing blob upload and download."""
+
 import errno
 import os
 from collections import namedtuple
@@ -14,17 +16,16 @@ FileSyncInfo = namedtuple(
 
 
 class Blobs:
-    """
-    A class for managing blob upload and download.
+    """A class for managing blob upload and download.
 
     In order for this to work you may need to 'pip install azure-storage-blob'.
 
-    Attributes
+    Attributes:
     ----------
     container_name : str
         The name for the blob container, typically we use the repository name.
 
-    Methods
+    Methods:
     -------
     blobs_list()
         Prints a list of the blobs within the container.
@@ -46,20 +47,20 @@ class Blobs:
         container_name,
         connection_string="AZURE_STORAGE_EEDIDATA_CONNECTION_STRING",
     ):
-        """initialisation
+        """Initialisation.
 
         Parameters
         ----------
         container_name : str
             The name for the blob container.
         """
-
         self.__set_blob_service_client(connection_string)
 
         self.__get_or_set_container(container_name)
 
     def __set_blob_service_client(self, connection_string):
         """The connection string is set as an environment variable on the user's computer.
+
         You can set this value using the following code:
 
         Windows:   setx AZURE_STORAGE_EEDIDATA_CONNECTION_STRING "<yourconnectionstring>"
@@ -69,12 +70,12 @@ class Blobs:
 
         The connection string comes from the Azure Portal Storage Accounts under Access Keys.
         """
-
         connect_str = os.getenv(connection_string)
         self.blob_service_client = BlobServiceClient.from_connection_string(connect_str)
 
     def __get_or_set_container(self, container_name):
         """Try to get the container with a given `container_name`.
+
         If it doesn't exist then create it.
 
         Parameters
@@ -82,7 +83,6 @@ class Blobs:
         container_name : str
             The name to be used for the blob container.
         """
-
         self.container_client = self.blob_service_client.get_container_client(
             container_name
         )
@@ -92,7 +92,6 @@ class Blobs:
 
     def blobs_list(self):
         """Prints a list of the blobs within the container."""
-
         return list(self.container_client.list_blobs())
 
     def upload(
@@ -115,7 +114,7 @@ class Blobs:
             The path to a containing folder from which the relative path will be calculated to name
             the blob.
 
-        Raises
+        Raises:
         ------
         FileNotFoundError
             If `filename` does not exist locally.
@@ -156,12 +155,11 @@ class Blobs:
         container_path : Path | str, optional
             The path to the folder which will contain the downloaded file.
 
-        Raises
+        Raises:
         ------
         FileNotFoundError
             If `blobname` does not exist in the container.
         """
-
         # Set the local container to the current working directory if none is specified
         container_path = (
             Path(container_path) if container_path is not None else Path.cwd()
@@ -193,12 +191,11 @@ class Blobs:
         blobname : str
             The name of the blob to delete.
 
-        Raises
+        Raises:
         ------
         FileNotFoundError
             If `blobname` does not exist in the container.
         """
-
         # Blob names can contain folders, fix any Windows style slashes
         blobname = blobname.replace("\\", "/")
 
@@ -225,12 +222,11 @@ class Blobs:
         blob_name : str
             The name of the blob to generate the SAS token for.
 
-        Returns
+        Returns:
         -------
         str
             The URL with a SAS token for the blob.
         """
-
         # Blob names can contain folders, fix any Windows style slashes
         blob_name = blob_name.replace("\\", "/")
 
@@ -282,13 +278,12 @@ class Blobs:
         extensions_to_include : Set[str]
             The file extensions to include.
 
-        Returns
+        Returns:
         -------
         FileSyncInfo
             A named tuple containing: local files, blob files, files missing locally, files missing
             in the blob container, and files that exist both locally and in the blob
         """
-
         # Get all files recursively with specified extensions, excluding those that start with "_"
         local_files = {
             str(f.relative_to(container_path)).replace("\\", "/")
@@ -335,7 +330,6 @@ class Blobs:
             The file extensions to include. We typically only want to check data files so .csv,
             .xls, .xlsx, and .zip are included by default.
         """
-
         # Set the local container to the current working directory if none is specified
         local_container_path = (
             Path(local_container_path)
@@ -375,6 +369,15 @@ class Blobs:
         is_add_missing=True,
         is_confirm=True,
     ):
+        """Download a batch of files from blob storage to the local container path.
+
+        Args:
+            container_path (Path | str | None, optional): The path to the local folder which contains all the files we want to compare to the remote blob container. Defaults to None.
+            extensions_to_include (set, optional): The types of file to include. Defaults to {".csv", ".xls", ".xlsx", ".zip"}.
+            is_update_existing (bool, optional): Whether to update existing files. Defaults to True.
+            is_add_missing (bool, optional): Whether to download files which are missing in the local folder. Defaults to True.
+            is_confirm (bool, optional): Whether to ask the user to confirm each download. Defaults to True.
+        """
         # Set the local container to the current working directory if none is specified
         container_path = (
             Path(container_path) if container_path is not None else Path.cwd()
@@ -414,6 +417,16 @@ class Blobs:
         is_confirm=True,
         overwrite=True,
     ):
+        """Upload a batch of files from local container path to blob storage.
+
+        Args:
+            container_path (Path | str | None, optional): The path to the local folder which contains all the files we want to compare to the remote blob container. Defaults to None.
+            extensions_to_include (set, optional): The types of file to include. Defaults to {".csv", ".xls", ".xlsx", ".zip"}.
+            is_update_existing (bool, optional): Whether to update existing files. Defaults to True.
+            is_add_missing (bool, optional): Whether to download files which are missing in the local folder. Defaults to True.
+            is_confirm (bool, optional): Whether to ask the user to confirm each download. Defaults to True.
+            overwrite (bool, optional): Whether to overwrite files in blob storage if they already exist. Defaults to True.
+        """
         # Set the local container to the current working directory if none is specified
         container_path = (
             Path(container_path) if container_path is not None else Path.cwd()

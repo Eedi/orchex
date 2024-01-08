@@ -31,7 +31,13 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.ruff.lint]
 # On top of the default `select` (`E`, `F`), enable isort (`I`) because it is enabled "on save" in the VS Code extension
-extend-select = ["I"]
+extend-select = ["I", "D"]
+# On top of the Google convention, disable "D417", which requires documentation for every function parameter.
+ignore = ["D417"]
+
+[tool.ruff.lint.pydocstyle]
+# Enable docstring checking
+convention = "google"
 
 [tool.mypy]
 python_version = "3.12"
