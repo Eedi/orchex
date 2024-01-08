@@ -11,5 +11,6 @@
     "notebook.codeActionsOnSave": {
         "source.fixAll": true,
         "source.organizeImports": true
-    }
+    },
+    "autoDocstring.docstringFormat": "google"
 }
