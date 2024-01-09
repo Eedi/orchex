@@ -32,3 +32,10 @@ Previously we would have installed the package globally using `pip install -e .`
     ```python
     from orchex.dataextract import DataExtract, DataSource
     ```
+
+5. If you then update this package you may need to reinstall your poetry environment. To do so:
+
+    - Close any IDEs (i.e. VS Code) that might be using the environment. (Otherwise the following will fail.)
+    - Remove the environment ```poetry env remove orchex-fYa19ibp-py3.12```
+    - Reinstall ```poetry install```
+    - In VS Code you may need to manually select the new environment. `Ctrl-Shift-P`, then click `Enter interpreter path...`.
