@@ -1,12 +1,13 @@
+"""Helper functions for Orchex."""
+
 import datetime
 import os
 import platform
 import sys
 import time
+from collections.abc import Iterable
 
-import gspread
 import pandas as pd
-from azure.data.tables import TableServiceClient
 
 if sys.platform == "darwin" and platform.processor() == "arm":
     import pymssql
@@ -14,7 +15,16 @@ else:
     import pyodbc
 
 
-def create_join_identifiers_table(temp_table_name, identifier_name, identifier_set):
+def create_join_identifiers_table(
+    temp_table_name: str, identifier_name: str, identifier_set: Iterable
+):
+    """Creates a temp table with a single column of identifiers to be used in a join.
+
+    Args:
+        temp_table_name (str): Name of the temp table to be created.
+        identifier_name (str): Name of the column in the temp table.
+        identifier_set (Iterable): List of identifiers to be inserted into the temp table.
+    """
     # check temp table starts with #
     assert (
         temp_table_name[0] == "#"
@@ -41,21 +51,15 @@ def _SQLconnection(connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING"):
     return cursor
 
 
-def fromSQL(sql, connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING"):
-    cursor = _SQLconnection(connection_string_name)
+def update_sql(
+    sql: str, connection_string_name: str = "AZURE_SQL_REPORT_CONNECTION_STRING"
+):
+    """Executes an update SQL query.
 
-    try:
-        cursor.execute(sql)
-    except Exception as e:
-        print("Error executing SQL query:", e)
-        return None
-
-    columns = [d[0] for d in cursor.description]
-    rows = [list(i) for i in cursor.fetchall()]
-    return pd.DataFrame(rows, columns=columns)
-
-
-def update_sql(sql, connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING"):
+    Args:
+        sql (str): SQL query to be executed.
+        connection_string_name (str, optional): Name of the environment variable containing the connection string. Defaults to "AZURE_SQL_REPORT_CONNECTION_STRING".
+    """
     cursor = _SQLconnection(connection_string_name)
 
     try:
@@ -68,47 +72,13 @@ def update_sql(sql, connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING")
     return None
 
 
-def fromTableStorage(
-    table_name,
-    query_filter,
-    connection_string_name="AZURE_STORAGE_EEDIPRODFLOWS_TABLES_CONNECTION_STRING",
-):
-    connection_string = os.getenv(connection_string_name)
-    table_service_client = TableServiceClient.from_connection_string(
-        conn_str=connection_string
-    )
-    table_client = table_service_client.get_table_client(table_name=table_name)
-
-    entities = table_client.query_entities(query_filter)
-    return pd.DataFrame(entities)
-
-
-def fromGSheet(file_key_env_variable, sheet_name=None):
-    gc = gspread.service_account(".sheets")
-    file_key = os.getenv(file_key_env_variable)
-    spreadsheet = gc.open_by_key(file_key)
-
-    if sheet_name:
-        worksheet = spreadsheet.worksheet(sheet_name)
-
-    else:
-        sheets = spreadsheet.fetch_sheet_metadata()["sheets"]
-        sheet_names = [sheets[i]["properties"]["title"] for i in range(len(sheets))]
-
-        if len(sheet_names) > 1:
-            return print(
-                "WARNING: multiple sheets exist.\n"
-                + "Use the keywork 'sheet_name' to specify one of:\n\n",
-                "\n".join(sheet_names),
-            )
-
-        else:
-            worksheet = spreadsheet.get_worksheet(0)
-    expected_headers = worksheet.row_values(1)
-    return pd.DataFrame(worksheet.get_all_records(expected_headers=expected_headers))
-
-
 def getDateTable(start: str, end: str = None):
+    """Creates a date dimension table.
+
+    Args:
+        start (str): Start date of the date dimension table.
+        end (str, optional): End date of the date dimension table. Defaults to None.
+    """
     if not end:
         end = datetime.datetime.today().strftime("%Y-%m-%d")
 

@@ -8,6 +8,7 @@ import re
 import string
 import sys
 import zipfile
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -300,7 +301,7 @@ class DataSource:
 
     @classmethod
     def fromMerge(
-        cls, name: str, parent_data_sources: list, merge_func: callable, **kwargs
+        cls, name: str, parent_data_sources: list, merge_func: Callable, **kwargs
     ):
         """Class method for creating a data source from a merge of other data sources.
 
@@ -708,13 +709,13 @@ class DataExtract:
         data_source.set_data_extract(self)
 
     def get_or_set_data_source(
-        self, data_source_name: str, data_source_func: callable, **kwargs
+        self, data_source_name: str, data_source_func: Callable, **kwargs
     ):
         """Get or set a data source.
 
         Args:
             data_source_name (str): The name of the data source.
-            data_source_func (callable): A function which takes a name and returns a data source.
+            data_source_func (Callable): A function which takes a name and returns a data source.
         """
         ds = self.data_sources.get(data_source_name, None)
 
