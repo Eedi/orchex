@@ -636,6 +636,24 @@ class DataExtract:
 
         self.set_paths_and_filenames()
 
+    @classmethod
+    def fromPickle(cls, filepath: Path | str) -> "DataExtract":
+        """Load a data extract from the given filepath.
+
+        Args:
+            filepath (Path | str): The path to the data extract.
+
+        Usage:
+        d = DataExtract.fromPickle(".foo/bar.pkl")  # Using a string
+        or
+        d = DataExtract.fromPickle(Path(".foo/bar.pkl"))  # Using a Path object
+        """
+        p = pd.read_pickle(filepath)
+
+        assert isinstance(p, cls), "The object is not a DataExtract."
+
+        return p
+
     def __str__(self):
         """Return a string representation of the data extract."""
         return (
@@ -710,7 +728,7 @@ class DataExtract:
 
     def get_or_set_data_source(
         self, data_source_name: str, data_source_func: Callable, **kwargs
-    ):
+    ) -> DataSource:
         """Get or set a data source.
 
         Args:
@@ -725,7 +743,9 @@ class DataExtract:
 
         return ds
 
-    def get_or_set_data_source_class(self, DataSourceClass: DataSource, **kwargs):
+    def get_or_set_data_source_class(
+        self, DataSourceClass: type[DataSource], **kwargs
+    ) -> DataSource:
         """Get or set a data source.
 
         Args:
@@ -739,7 +759,7 @@ class DataExtract:
 
         return ds
 
-    def save(self):
+    def save(self) -> None:
         """Save the data extract."""
         filepath = str(self.data_extract_path / self.private_filename)
 
@@ -779,23 +799,6 @@ class DataExtract:
 
         blob = Blobs(container_name)
         blob.upload_file(archive_file_path)
-
-    @staticmethod
-    def load(filepath: Path | str):
-        """Load a data extract from the given filepath.
-
-        Args:
-            filepath (Path | str): The path to the data extract.
-
-        Usage:
-        d = DataExtract.load(".foo/bar.pkl")  # Using a string
-        or
-        d = DataExtract.load(Path(".foo/bar.pkl"))  # Using a Path object
-        """
-        if isinstance(filepath, Path):
-            filepath = str(filepath)
-
-        return pd.read_pickle(filepath)
 
     def find_id_columns(self):
         """Find all the columns which look like ids."""
@@ -879,7 +882,7 @@ class DataExtract:
 
         return real_id_to_pseudo_id
 
-    def generate_markdown_report(self):
+    def generate_markdown_report(self) -> None:
         """Generate a markdown report for the data extract, reporting statistics on each data source."""
         markdown_report = MarkdownReport(f"Data analysis for {self.name}")
 

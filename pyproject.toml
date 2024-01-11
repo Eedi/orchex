@@ -5,6 +5,10 @@ description = "A library for the orchestration of data workflows, including hier
 authors = ["Simon Woodhead <simon.woodhead@eedi.co.uk>"]
 license = "MIT"
 readme = "README.md"
+packages = [
+    {include = "orchex"},
+    {include = "orchex/py.typed"}
+]
 
 [tool.poetry.dependencies]
 python = "^3.12"

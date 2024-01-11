@@ -17,14 +17,16 @@ Previously we would have installed the package globally using `pip install -e .`
 1. Clone the repository:
     
     ```bash
-    git clone git@github.com:Eedi/eedata.git
+    git clone git@github.com:Eedi/orchex.git
     ```
     
-2. In your other repository:
+2. In your other repository, add the following to the `pyproject.toml`:
 
-    ```bash
-    poetry add path/to/this/package
     ```
+    orchex = {path = "../orchex", develop = true}
+    ```
+    The develop flag should mean that your installation will be automatically updated when `orchex` is editted.
+
 3. Some environments variables (`.env` and `.sheets`) are required for some components. Contact [Simon](simon.woodhead@eedi.co.uk) for details.
 
 4. You can now import this package:
@@ -33,9 +35,11 @@ Previously we would have installed the package globally using `pip install -e .`
     from orchex.dataextract import DataExtract, DataSource
     ```
 
-5. If you then update this package you may need to reinstall your poetry environment. To do so:
+5. If you then update this package it should update automatically (if `develop = true`). If this does not happen you should be able to just run `poetry update orchex` but you may need to reinstall your poetry environment. To do so:
 
     - Close any IDEs (i.e. VS Code) that might be using the environment. (Otherwise the following will fail.)
+    - Run `poetry env list` to get the name of the environment.
     - Remove the environment ```poetry env remove orchex-fYa19ibp-py3.12```
+    - Go and delete where the environment folder is (e.g. `E:\packages\poetry\virtualenvs`). This is necessary otherwise the next step will just reinstalled some cached versions.
     - Reinstall ```poetry install```
     - In VS Code you may need to manually select the new environment. `Ctrl-Shift-P`, then click `Enter interpreter path...`.
