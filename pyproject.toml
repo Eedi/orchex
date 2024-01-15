@@ -11,15 +11,16 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.11"
 pandas = "^2.1.4"
 numpy = "^1.26.2"
 gspread = "^5.12.3"
-pyodbc = { version = "^5.0.1", markers = "sys_platform == 'win32'" }
-pymssql = { version = "^2.2.11", markers = "sys_platform != 'win32'" }
+
+
 inflect = "^7.0.0"
 azure-data-tables = "^12.4.4"
 azure-storage-blob = "^12.19.0"
+pymssql = "^2.2.11"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.1.9"
