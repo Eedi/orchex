@@ -6,6 +6,7 @@
         * [Windows](#windows)
         * [MacOS](#mac)
         * [Linux](#linux)
+3. [Run](#run) 🏃
 4. [Using `orchex` in other repositories](#otherRepo) 
 
 
@@ -44,7 +45,7 @@ In more detail, the main code of the module can be found under `/orchex/dataextr
 
     This class allows for 3 different ways of saving the data:
 
-    * `save()`: _saves a `.pkl` file of the class. Recommended for personal use. __NOT__ sharing data_
+    * `save()`: _saves a `.pkl` file of the class . Recommended for personal use. __NOT__ sharing data_
 
     * `export()`: _creates pseudonymised `.csv` files. Best way to share data_
     * `archive()`: _creates a `.zip` file with all the created folders and uploads them to Azure Blob Storage._
@@ -142,6 +143,27 @@ To create the environment:
     poetry update
     ```
 
+## Run 🏃<a id="run"></a>
+
+Example run, where `foo` a function:
+
+```python
+from orchex.dataextract import DataExtract
+
+data_extract = DataExtract(
+        name="model-agnostic-data-extract",
+        description="""A model-agnostic extract of Eedi data.""",
+        container_path="data"
+)
+
+topic_pathway_collection_ids = (4, 5, 6, 7, 9, 10, 11)
+answers_ds =data_extract.get_or_set_data_source(
+    "answers", 
+    foo,
+    topic_pathway_collection_ids=topic_pathway_collection_ids
+)
+print(answers_ds.head())
+```
 
 ## Using `orchex` in other repositories <a id=otherRepo></a>
 
