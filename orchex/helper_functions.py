@@ -8,11 +8,7 @@ import time
 from collections.abc import Iterable
 
 import pandas as pd
-
-if sys.platform == "darwin" and platform.processor() == "arm":
-    import pymssql
-else:
-    import pyodbc
+import pyodbc
 
 
 def create_join_identifiers_table(
