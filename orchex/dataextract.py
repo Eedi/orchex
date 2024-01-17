@@ -20,11 +20,14 @@ from .blobs import Blobs
 
 p = inflect.engine()
 
-if sys.platform == "darwin" and platform.processor() == "arm":
-    import pymssql  # noqa: F401
-else:
-    import pyodbc
+import pyodbc
 
+
+def SQLconnection(connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING"): 
+    connection_string = os.getenv(connection_string_name)
+    cnxn = pyodbc.connect(connection_string,driver=pyodbc.drivers()[0])
+    cursor = cnxn.cursor()
+    return cursor
 
 def zip_folder(folder_to_archive_path: Path | str, archive_file_path: Path | str):
     """Zip the contents of a given folder and save to a given file path.
@@ -327,6 +330,7 @@ class DataSource:
         connection_string_name: str = "AZURE_SQL_REPORT_CONNECTION_STRING",
         **kwargs,
     ):
+        
         """Class method for creating a data source by extracting data from a SQL database.
 
         Args:
@@ -337,28 +341,19 @@ class DataSource:
         Returns:
             DataSource: An instance of the DataSource class.
         """
-        connection_string = os.getenv(connection_string_name)
-        cnxn = pyodbc.connect(connection_string)
-        # If you see an error here be sure to install the correct driver: https://docs.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-ver15
-
-        cursor = cnxn.cursor()
+        
+        cursor = SQLconnection(connection_string_name)
 
         cursor.execute(sql)
-
-        # with open("sql-from-python-experiment.csv", "w", newline="", encoding="utf-8") as csvfile:
-        #     writer = csv.writer(csvfile)
-        #     writer.writerow([x[0] for x in cursor.description])
-        #     row = cursor.fetchone()
-        #     while row:
-        #         writer.writerow(row)
-        #         row = cursor.fetchone()
-
+        
         columns = [d[0] for d in cursor.description]
         rows = [list(i) for i in cursor.fetchall()]
         dataframe = pd.DataFrame(rows, columns=columns)
 
         return cls(name=name, dataframe=dataframe, **kwargs)
 
+    
+            
     @classmethod
     def fromSQLFile(
         cls,
@@ -377,9 +372,7 @@ class DataSource:
         Returns:
             DataSource: An instance of the DataSource class.
         """
-        connection_string = os.getenv(connection_string_name)
-        cnxn = pyodbc.connect(connection_string)
-        cursor = cnxn.cursor()
+        cursor = SQLconnection(connection_string_name)
 
         with open(filename, "r") as file:
             sql = file.read()
