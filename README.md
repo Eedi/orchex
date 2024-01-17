@@ -1,101 +1,143 @@
 ## Table of Contents
 1. [Overview](#overview) 📖
 2. [Setup](#setup) 🧑‍🔬
-    * [Requirements](#req) 📋
-3. [Installation](#installation) 
-    * Windows (#windows)
-    * MacOS (#mac)
-    * Linux (#linux)
+    * [Prerequisites](#prereq) 📋
+    * [Installation](#installation) ⏬
+        * [Windows](#windows)
+        * [MacOS](#mac)
+        * [Linux](#linux)
 4. [Using `orchex` in other repositories](#otherRepo) 
 
 
-# Orchex <a id="overview"></a>
+# Orchex <a id="overview"></a> 📖
 
-`Orchex` is a library for the orchestration of data workflows, including hierarchical extraction, transformation with pseudonymisation, automated documentation, and secure sharing mechanisms.
+On a snapshot, `orchex` is a library for the orchestration of data workflows, including hierarchical extraction, transformation with pseudonymisation, automated documentation, and secure sharing mechanisms.
 
+In more detail, the main code of the module can be found under `/orchex/dataextract.py` where the code for the two main data classes `DataSource` and `DataExtract` can be found.
 
-# Setup <a id="setup"></a>
-## Requirements <a id="req"></a>
+* `DataSource`
 
-#### Python
-`Python version 3.12^` is required
+    This class contains several methods that allow the user to extract data from a data source 
+    and create a dataframe object. Supported data sources: 
+    * SQL code
+    * SQL file
+    * Table Storage database 
+    * csv file
 
+* `DataExtract`
 
-#### `.env` file
-To extract data from the database some azure specific variables are required to be stored in a `.env` file. If you don't have those information please contact [Simon](mailto:simon.woodhead@eedi.co.uk)
+    This class allows the user to combine multiple `DataSources` objects at a single object. This facilitates easy execution of the same operation to multiple different `DataSources` such as pseudonymisation. 
 
-## Installation <a id="installation"></a>
+    The data will be stored in the following  filestructue 
 
-### Poetry
-`orchex` uses `poetry` (do not use `pip` or `conda`).
-* To create the environment:
+    ```
+    {name}-{YYYYmmDDHHMM}-{id}
+    ├── {name}-{YYYYmmDDHHMM}-{id}-PRIVATE.pkl
+    ├── {name}-{YYYYmmDDHHMM}-{id}-PUBLIC/
+    │   ├── data
+    │   │   └──{data_source_name}.csv
+    │   ├──img
+    │   ├──docs
+    │       ├── README.md
+    │       └── img
+    ```
 
-#### Windows <a id="windows"></a>
+    This class allows for 3 different ways of saving the data:
 
-```bash
-poetry env use 3.12
-poetry install
-```
+    * `save()`: _saves a `.pkl` file of the class. Recommended for personal use. __NOT__ sharing data_
 
-* To activate: 
+    * `export()`: _creates pseudonymised `.csv` files. Best way to share data_
+    * `archive()`: _creates a `.zip` file with all the created folders and uploads them to Azure Blob Storage._
 
-```bash
-poetry shell
-```
-
-#### MacOS <a id="mac"></a>
-
-* To create the environment:
-```bash
-poetry env use 3.12
-poetry config --local installer.no-binary pymssql
-
-brew install FreeTDS
-export CFLAGS="-I$(brew --prefix openssl)/include"
-export LDFLAGS="-L$(brew --prefix openssl)/lib -L/usr/local/opt/openssl/lib"
-export CPPFLAGS="-I$(brew --prefix openssl)/include"
-
-poetry install
-```
-
-* To activate: 
-
-```bash
-poetry shell
-```
+📝
+__NOTE__: In both classes there is the functionality to create a markdown report with all the class info.
 
 
+# 2. Setup <a id="setup"></a> 🧑‍🔬
+## 2.1 Prerequisites <a id="prereq"></a> 📋
 
-#### Linux/ Eedi VM <a id="linux"></a>
+* ### Python 🐍
+    `Python version 3.12^` is required
 
-* To create the environment:
+* ### ODBC Driver (if running SQL code) 💻
+    If you wish to create `DataSources` and/or `DataExtracts` using SQL code then, ODBC drivers should be installed.
+    Please follow the instructions on the following page based on your OS (v17+ is recommended):
 
-```bash
-export PYTHON_KEYRING_BACKEND=keyring.backends.fail.Keyring
+    * [Windows](https://learn.microsoft.com/en-au/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-2017#download-for-windows)
+    * [MacOS](https://learn.microsoft.com/en-au/sql/connect/odbc/linux-mac/install-microsoft-odbc-driver-sql-server-macos?view=sql-server-2017)
+    * [Linux](https://learn.microsoft.com/en-au/sql/connect/odbc/linux-mac/installing-the-microsoft-odbc-driver-for-sql-server?view=sql-server-2017&tabs=alpine18-install%2Calpine17-install%2Cdebian8-install%2Credhat7-13-install%2Crhel7-offline) 
 
-poetry env use 3.12
-poetry config --local installer.no-binary pymssql
+* ### `.env` file 📃
+    To extract data from the database some azure specific variables are required to be stored in a `.env` file. If you don't have those information please contact [Simon](mailto:simon.woodhead@eedi.co.uk)
 
-poetry install
-poetry shell
+## 2.2 Installation <a id="installation"></a>  ⏬
 
-```
-NOTE: if you get the following error :
-```shell
-This error originates from the build backend, and is likely not a problem with poetry but with multidict (6.0.4) not supporting PEP 517 builds. You can verify this by running 'pip wheel --use-pep517 "multidict (==6.0.4)"'.
-```
-Run:
+### Poetry 
+`orchex` uses `poetry` __(do not use `pip` or `conda`)__.
+To create the environment:
 
-```shell
-poetry shell
-pip install --upgrade pip
-MULTIDICT_NO_EXTENSIONS=1 pip install multidict
-poetry add inflect
-poetry add pyodbc
+* #### Windows <a id="windows"></a>
 
-# if package are not reinstalled then run: 
-poetry update
-```
+    ```shell
+    poetry env use 3.12
+    poetry install
+
+    # to activate the env
+    poetry shell
+    ```
+
+
+* #### MacOS <a id="mac"></a>
+
+
+    ```bash
+    poetry env use 3.12
+    poetry config --local installer.no-binary pymssql
+
+    brew install FreeTDS
+    export CFLAGS="-I$(brew --prefix openssl)/include"
+    export LDFLAGS="-L$(brew --prefix openssl)/lib -L/usr/local/opt/openssl/lib"
+    export CPPFLAGS="-I$(brew --prefix openssl)/include"
+
+    poetry install
+
+    # to activate the env
+    poetry shell
+    ```
+
+* #### Linux/ Eedi VM <a id="linux"></a>
+
+
+    ```bash
+    export PYTHON_KEYRING_BACKEND=keyring.backends.fail.Keyring
+
+    poetry env use 3.12
+    poetry config --local installer.no-binary pymssql
+
+    poetry install
+
+    # to activate the env
+    poetry shell
+    ```
+
+    ❗ __NOTE__:
+    if you get the following error 
+
+    ```shell
+    This error originates from the build backend, and is likely not a problem with poetry but with multidict (6.0.4) not supporting PEP 517 builds. You can verify this by running 'pip wheel --use-pep517 "multidict (==6.0.4)"'.
+    ```
+    Run:
+
+    ```shell
+    poetry shell
+    pip install --upgrade pip
+    MULTIDICT_NO_EXTENSIONS=1 pip install multidict
+    poetry add inflect
+    poetry add pyodbc
+
+    # if package are not reinstalled then run: 
+    poetry update
+    ```
 
 
 ## Using `orchex` in other repositories <a id=otherRepo></a>
