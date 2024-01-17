@@ -14,12 +14,14 @@
 
 On a snapshot, `orchex` is a library for the orchestration of data workflows, including hierarchical extraction, transformation with pseudonymisation, automated documentation, and secure sharing mechanisms.
 
-In more detail, the main code of the module can be found under `/orchex/dataextract.py` where the code for the two main data classes `DataSource` and `DataExtract` can be found.
+For a closer look, you can explore the core module's primary code located at `orchex/dataextract.py`, where you'll find the implementation of the main data classes: `DataSource`and `DataExtract`.
 
 * `DataSource`
 
-    This class contains several methods that allow the user to extract data from a data source 
-    and create a dataframe object. Supported data sources: 
+    This class contains several methods to facilitiate data extraction from a data source 
+    and create a dataframe object. 
+    
+    Supported data sources: 
     * SQL code
     * SQL file
     * Table Storage database 
@@ -27,9 +29,9 @@ In more detail, the main code of the module can be found under `/orchex/dataextr
 
 * `DataExtract`
 
-    This class allows the user to combine multiple `DataSources` objects at a single object. This facilitates easy execution of the same operation to multiple different `DataSources` such as pseudonymisation. 
+    This class allows the user to combine multiple `DataSources` objects at a single entity, enabling seamless execution of the same operation to multiple different `DataSources` such as pseudonymisation. 
 
-    The data will be stored in the following  filestructue 
+    The data from the `DataExtract` will be stored in the following  filestructue: 
 
     ```
     {name}-{YYYYmmDDHHMM}-{id}
@@ -177,9 +179,16 @@ Previously we would have installed the package globally using `pip install -e .`
     
 2. In your other repository, add the following to the `pyproject.toml`:
 
+    ```python
+    orchex = {path = <path-to-orchex>, develop=true}
     ```
+    Example:
+    `orchex` was cloned in the parent directory of the current project.
+
+    ```bash
     orchex = {path = "../orchex", develop = true}
     ```
+
     The develop flag should mean that your installation will be automatically updated when `orchex` is editted.
 
 3. Some environments variables (`.env` and `.sheets`) are required for some components. Contact [Simon](mailto:simon.woodhead@eedi.co.uk) for details.
