@@ -80,6 +80,7 @@ To create the environment:
 
     ```shell
     poetry env use 3.12
+    poetry config virtualenvs.in-project true
     poetry install
 
     # to activate the env
@@ -92,6 +93,7 @@ To create the environment:
 
     ```bash
     poetry env use 3.12
+    poetry config virtualenvs.in-project true
     poetry config --local installer.no-binary pymssql
 
     brew install FreeTDS
@@ -112,6 +114,7 @@ To create the environment:
     export PYTHON_KEYRING_BACKEND=keyring.backends.fail.Keyring
 
     poetry env use 3.12
+    poetry config virtualenvs.in-project true
     poetry config --local installer.no-binary pymssql
 
     poetry install
