@@ -33,16 +33,10 @@ CREATE TABLE {temp_table_name} ({identifier_name} INT)
 INSERT INTO {temp_table_name} VALUES {'(' + middle_bit.join(list(map(str, identifier_set))) + ')'}"""
 
 
-def _SQLconnection(connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING"):
-    if sys.platform == "darwin" and platform.processor() == "arm":
-        server = os.getenv("server")
-        user = os.getenv("user_id")
-        password = os.getenv("password")
-        database = "diagnosticquestions-report"
-        cnxn = pymssql.connect(server, user, password, database)
-    else:
-        connection_string = os.getenv(connection_string_name)
-        cnxn = pyodbc.connect(connection_string)
+def _SQLconnection(connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING"): 
+    
+    connection_string = os.getenv(connection_string_name)
+    cnxn = pyodbc.connect(connection_string,driver=str(pyodbc.drivers()[0]))
     cursor = cnxn.cursor()
     return cursor
 

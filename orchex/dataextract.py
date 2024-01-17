@@ -21,13 +21,8 @@ from .blobs import Blobs
 p = inflect.engine()
 
 import pyodbc
+from helper_functions import _SQLconnection
 
-
-def SQLconnection(connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING"): 
-    connection_string = os.getenv(connection_string_name)
-    cnxn = pyodbc.connect(connection_string,driver=pyodbc.drivers()[0])
-    cursor = cnxn.cursor()
-    return cursor
 
 def zip_folder(folder_to_archive_path: Path | str, archive_file_path: Path | str):
     """Zip the contents of a given folder and save to a given file path.
@@ -342,7 +337,7 @@ class DataSource:
             DataSource: An instance of the DataSource class.
         """
         
-        cursor = SQLconnection(connection_string_name)
+        cursor = _SQLconnection(connection_string_name)
 
         cursor.execute(sql)
         
@@ -372,7 +367,7 @@ class DataSource:
         Returns:
             DataSource: An instance of the DataSource class.
         """
-        cursor = SQLconnection(connection_string_name)
+        cursor = _SQLconnection(connection_string_name)
 
         with open(filename, "r") as file:
             sql = file.read()
