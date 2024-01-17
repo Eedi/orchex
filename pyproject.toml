@@ -20,7 +20,7 @@ gspread = "^5.12.3"
 inflect = "^7.0.0"
 azure-data-tables = "^12.4.4"
 azure-storage-blob = "^12.19.0"
-pymssql = "^2.2.11"
+pyodbc = "^5.0.1"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.1.9"
