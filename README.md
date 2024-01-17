@@ -97,12 +97,8 @@ To create the environment:
     ```bash
     poetry env use 3.12
     poetry config virtualenvs.in-project true
-    poetry config --local installer.no-binary pymssql
-
-    brew install FreeTDS
-    export CFLAGS="-I$(brew --prefix openssl)/include"
-    export LDFLAGS="-L$(brew --prefix openssl)/lib -L/usr/local/opt/openssl/lib"
-    export CPPFLAGS="-I$(brew --prefix openssl)/include"
+    
+    poetry config --local installer.no-binary pyodbc
 
     poetry install
 
@@ -118,7 +114,7 @@ To create the environment:
 
     poetry env use 3.12
     poetry config virtualenvs.in-project true
-    poetry config --local installer.no-binary pymssql
+    poetry config --local installer.no-binary pyodbc
 
     poetry install
 
