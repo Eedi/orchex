@@ -10,9 +10,9 @@
 4. [Using `orchex` in other repositories](#otherRepo) 
 
 
-# Orchex <a id="overview"></a> 📖
+# Overview <a id="overview"></a> 📖
 
-On a snapshot, `orchex` is a library for the orchestration of data workflows, including hierarchical extraction, transformation with pseudonymisation, automated documentation, and secure sharing mechanisms.
+In a snapshot, `orchex` is a library for the orchestration of data workflows, including hierarchical extraction, transformation with pseudonymisation, automated documentation, and secure sharing mechanisms.
 
 For a closer look, you can explore the core module's primary code located at `orchex/dataextract.py`, where you'll find the implementation of the main data classes: `DataSource`and `DataExtract`.
 
