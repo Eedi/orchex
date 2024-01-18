@@ -12,5 +12,11 @@
         "source.fixAll": true,
         "source.organizeImports": true
     },
-    "autoDocstring.docstringFormat": "google"
+    "autoDocstring.docstringFormat": "google",
+    "editor.rulers": [
+        {
+          "column": 88,
+          "color": "#aaa"
+        }
+     ],
 }
