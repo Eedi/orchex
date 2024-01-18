@@ -114,8 +114,7 @@ To create the environment:
 
     poetry env use 3.12
     poetry config virtualenvs.in-project true
-    poetry config --local installer.no-binary pyodbc
-
+    
     poetry install
 
     # to activate the env

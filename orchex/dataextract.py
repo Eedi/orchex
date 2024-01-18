@@ -21,7 +21,8 @@ from .blobs import Blobs
 p = inflect.engine()
 
 import pyodbc
-from helper_functions import _SQLconnection
+
+from .helper_functions import _SQLconnection
 
 
 def zip_folder(folder_to_archive_path: Path | str, archive_file_path: Path | str):
