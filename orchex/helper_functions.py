@@ -8,11 +8,7 @@ import time
 from collections.abc import Iterable
 
 import pandas as pd
-
-if sys.platform == "darwin" and platform.processor() == "arm":
-    import pymssql
-else:
-    import pyodbc
+import pyodbc
 
 
 def create_join_identifiers_table(
@@ -37,16 +33,13 @@ CREATE TABLE {temp_table_name} ({identifier_name} INT)
 INSERT INTO {temp_table_name} VALUES {'(' + middle_bit.join(list(map(str, identifier_set))) + ')'}"""
 
 
-def _SQLconnection(connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING"):
-    if sys.platform == "darwin" and platform.processor() == "arm":
-        server = os.getenv("server")
-        user = os.getenv("user_id")
-        password = os.getenv("password")
-        database = "diagnosticquestions-report"
-        cnxn = pymssql.connect(server, user, password, database)
-    else:
-        connection_string = os.getenv(connection_string_name)
-        cnxn = pyodbc.connect(connection_string)
+def _SQLconnection(
+        connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING"):
+
+    connection_string = os.getenv(connection_string_name)
+
+    # drivers argument added to work with drivers from all platforms (Windows, Linux, Mac)
+    cnxn = pyodbc.connect(connection_string, driver=str(pyodbc.drivers()[0]))
     cursor = cnxn.cursor()
     return cursor
 
