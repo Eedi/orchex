@@ -582,8 +582,12 @@ class DataSource:
 
         return pd.DataFrame(stats)
 
-    def add_markdown_report(self, markdown_report: MarkdownReport, anchor: str):
+    def add_markdown_report(
+        self, markdown_report: MarkdownReport, anchor: str, docs_path: Path
+    ):  # noqa: C901
         """Add a markdown report for the data source to the given markdown report."""
+        print(f"Generating statistics and markdown report for {self.name}...")
+
         markdown_report.add_heading(self.name, 3, anchor)
 
         if self.description:
@@ -884,6 +888,8 @@ class DataExtract:
 
     def generate_markdown_report(self) -> None:
         """Generate a markdown report for the data extract, reporting statistics on each data source."""
+        docs_path = self.data_extract_path / self.public_folder / "docs"
+
         markdown_report = MarkdownReport(f"Data analysis for {self.name}")
 
         # Add a table of contents
@@ -910,12 +916,10 @@ class DataExtract:
             "Data Sources", level=1, anchor=anchors["Data Sources"]
         )
         for k, v in self.data_sources.items():
-            v.add_markdown_report(markdown_report, anchors[k])
+            v.add_markdown_report(markdown_report, anchors[k], docs_path)
 
         # Save the report
-        markdown_report.save(
-            self.data_extract_path / self.public_folder / "docs" / "README.md"
-        )
+        markdown_report.save(docs_path / "README.md")
 
     @staticmethod
     def get_data_source_from_list(
