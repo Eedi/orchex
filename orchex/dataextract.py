@@ -1,14 +1,15 @@
 """A module for managing data extracts, including the DataExtract and DataSource classes."""
 
 import os
+import pathlib
 import pickle
 import platform
 import random
 import re
 import string
-import sys
 import zipfile
 from collections.abc import Callable
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -17,12 +18,30 @@ import pandas as pd
 from azure.data.tables import TableServiceClient
 
 from .blobs import Blobs
+from .helper_functions import _SQLconnection
+
+
+@contextmanager
+def set_posix_windows():
+    """A context manager for temporarily changing the behaviour of Pathlib's PosixPath and WindowsPath."""
+    plt = platform.system()
+    if plt == "Windows":
+        posix_backup = pathlib.PosixPath
+        try:
+            pathlib.PosixPath = pathlib.WindowsPath
+            yield
+        finally:
+            pathlib.PosixPath = posix_backup
+    else:
+        posix_backup = pathlib.WindowsPath
+        try:
+            pathlib.WindowsPath = pathlib.PosixPath
+            yield
+        finally:
+            pathlib.WindowsPath = posix_backup  # noqa: F821
+
 
 p = inflect.engine()
-
-import pyodbc
-
-from .helper_functions import _SQLconnection
 
 
 def zip_folder(folder_to_archive_path: Path | str, archive_file_path: Path | str):
@@ -326,7 +345,6 @@ class DataSource:
         connection_string_name: str = "AZURE_SQL_REPORT_CONNECTION_STRING",
         **kwargs,
     ):
-        
         """Class method for creating a data source by extracting data from a SQL database.
 
         Args:
@@ -337,19 +355,16 @@ class DataSource:
         Returns:
             DataSource: An instance of the DataSource class.
         """
-        
         cursor = _SQLconnection(connection_string_name)
 
         cursor.execute(sql)
-        
+
         columns = [d[0] for d in cursor.description]
         rows = [list(i) for i in cursor.fetchall()]
         dataframe = pd.DataFrame(rows, columns=columns)
 
         return cls(name=name, dataframe=dataframe, **kwargs)
 
-    
-            
     @classmethod
     def fromSQLFile(
         cls,
@@ -641,7 +656,9 @@ class DataExtract:
         or
         d = DataExtract.fromPickle(Path(".foo/bar.pkl"))  # Using a Path object
         """
-        p = pd.read_pickle(filepath)
+        with set_posix_windows():
+            with open(filepath, "rb") as f:
+                p = pickle.load(f)
 
         assert isinstance(p, cls), "The object is not a DataExtract."
 

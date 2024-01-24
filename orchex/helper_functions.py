@@ -2,8 +2,6 @@
 
 import datetime
 import os
-import platform
-import sys
 import time
 from collections.abc import Iterable
 
@@ -33,9 +31,7 @@ CREATE TABLE {temp_table_name} ({identifier_name} INT)
 INSERT INTO {temp_table_name} VALUES {'(' + middle_bit.join(list(map(str, identifier_set))) + ')'}"""
 
 
-def _SQLconnection(
-        connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING"):
-
+def _SQLconnection(connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING"):
     connection_string = os.getenv(connection_string_name)
 
     # drivers argument added to work with drivers from all platforms (Windows, Linux, Mac)
