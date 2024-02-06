@@ -127,7 +127,7 @@ class Blobs:
         )
 
         # The relative filepath is used as the name for the blob.
-        relative_filepath = str(filepath.relative_to(container_path))
+        relative_filepath = str(filepath.resolve().relative_to(container_path))
 
         print(f"\nUploading blob from: {filepath}")
 

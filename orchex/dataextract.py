@@ -246,8 +246,12 @@ class MarkdownReport:
             toc_markdown += f"{'    ' * level}{index}. [{heading}](#{anchor})\n"
 
             # Generate a unique anchor for the heading
-            assert toc_anchors.get(heading) is None, "This heading already exists, use unique names for headings (or write a better toc \
+            assert (
+                toc_anchors.get(heading) is None
+            ), (
+                "This heading already exists, use unique names for headings (or write a better toc \
                 generator)."
+            )
 
             toc_anchors[heading] = anchor
 
@@ -803,7 +807,7 @@ class DataExtract:
         zip_folder(folder_to_archive_path, archive_file_path)
 
         blob = Blobs(container_name)
-        blob.upload_file(archive_file_path)
+        blob.upload(archive_file_path)
 
     def find_id_columns(self):
         """Find all the columns which look like ids."""
