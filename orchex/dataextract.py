@@ -797,13 +797,8 @@ class DataExtract:
         Args:
         container_name (str): The name of the Azure Blob Storage container to upload the data extract to.
         """
-        folder_to_archive_path = (
-            self.data_extract.data_extract_path / self.data_extract.public_folder
-        )
-        archive_file_path = (
-            self.data_extract.data_extract_path
-            / self.data_extract.public_archive_filename
-        )
+        folder_to_archive_path = self.data_extract_path / self.public_folder
+        archive_file_path = self.data_extract_path / self.public_archive_filename
 
         zip_folder(folder_to_archive_path, archive_file_path)
 
