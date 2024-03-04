@@ -795,19 +795,27 @@ class DataExtract:
             ds = self.data_sources[name]
             ds.export()
 
-    def archive(self, container_name: str):
+    def archive(self, public_container_name: str, private_container_name: str):
         """Archive and upload the data extract to Azure Blob Storage.
 
         Args:
-        container_name (str): The name of the Azure Blob Storage container to upload the data extract to.
+        public_container_name (str): The name of the Azure Blob Storage container to upload the public data extract to.
+        private_container_name (str): The name of the Azure Blob Storage container to upload the private data extract to.
         """
+        # Step 1: Archive the public data extract
+
         folder_to_archive_path = self.data_extract_path / self.public_folder
         archive_file_path = self.data_extract_path / self.public_archive_filename
 
         zip_folder(folder_to_archive_path, archive_file_path)
 
-        blob = Blobs(container_name)
-        blob.upload(archive_file_path)
+        public_blob = Blobs(public_container_name)
+        public_blob.upload(archive_file_path)
+
+        # Step 2: Archive the private data extract
+
+        private_blob = Blobs(private_container_name)
+        private_blob.upload(self.data_extract_path / self.private_filename)
 
     def find_id_columns(self):
         """Find all the columns which look like ids."""
