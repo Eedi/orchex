@@ -4,13 +4,14 @@ import datetime
 import os
 import time
 from collections.abc import Iterable
+from textwrap import dedent
 
 import pandas as pd
 import pyodbc
 
 
 def create_join_identifiers_table(
-    temp_table_name: str, identifier_name: str, identifier_set: Iterable
+    temp_table_name: str, id_name: str, id_set: Iterable, is_int: bool = True
 ):
     """Creates a temp table with a single column of identifiers to be used in a join.
 
@@ -18,17 +19,30 @@ def create_join_identifiers_table(
         temp_table_name (str): Name of the temp table to be created.
         identifier_name (str): Name of the column in the temp table.
         identifier_set (Iterable): List of identifiers to be inserted into the temp table.
+        is_int (bool, optional): Whether the identifiers are integers. Defaults to True.
     """
     # check temp table starts with #
     assert (
         temp_table_name[0] == "#"
     ), "This function is designed to create a temp table, please provide a name starting with #."
 
-    middle_bit = f") INSERT INTO {temp_table_name} VALUES ("
+    if is_int:
+        dtype = "INT"
+        insert_text = f") INSERT INTO {temp_table_name} VALUES ("
+        all_insertions_text = "(" + insert_text.join(list(map(str, id_set))) + ")"
+    else:
+        dtype = "VARCHAR(255)"
+        insert_text = f"') INSERT INTO {temp_table_name} VALUES ('"
+        all_insertions_text = "('" + insert_text.join(list(map(str, id_set))) + "')"
 
-    return f"""DROP TABLE IF EXISTS {temp_table_name}
-CREATE TABLE {temp_table_name} ({identifier_name} INT)
-INSERT INTO {temp_table_name} VALUES {'(' + middle_bit.join(list(map(str, identifier_set))) + ')'}"""
+    initial_text = f"""\
+        DROP TABLE IF EXISTS {temp_table_name}
+        CREATE TABLE {temp_table_name} ({id_name} {dtype})
+        INSERT INTO {temp_table_name} VALUES """
+
+    sql_text = initial_text + all_insertions_text
+
+    return dedent(sql_text)
 
 
 def _SQLconnection(connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING"):
@@ -36,6 +50,8 @@ def _SQLconnection(connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING"):
 
     # drivers argument added to work with drivers from all platforms (Windows, Linux, Mac)
     cnxn = pyodbc.connect(connection_string, driver=str(pyodbc.drivers()[0]))
+    cnxn.setdecoding(pyodbc.SQL_CHAR, encoding="utf-8")
+    cnxn.setdecoding(pyodbc.SQL_WCHAR, encoding="utf-8")
     cursor = cnxn.cursor()
     return cursor
 

@@ -405,8 +405,9 @@ class DataSource:
         cls,
         name: str,
         table_name: str,
-        query_filter: str,
         connection_string_name: str,
+        select: str = None,
+        query_filter: str = "",
         **kwargs,
     ):
         """Class method for creating a data source by extracting data from a Table Storage database.
@@ -414,8 +415,9 @@ class DataSource:
         Args:
             name (str): The name of the data source.
             table_name (str): The name of the table storage table to query.
-            query_filter (str): The query filter to apply to the table storage table.
             connection_string_name (str): Name of the environment variable which stores the connections string.
+            select (str, optional): The columns to select from the table storage table. Defaults to None.
+            query_filter (str, optional): The query filter to apply to the table storage table. Defaults to "".
 
         Returns:
             DataSource: An instance of the DataSource class.
@@ -426,7 +428,7 @@ class DataSource:
         )
         table_client = table_service_client.get_table_client(table_name=table_name)
 
-        entities = table_client.query_entities(query_filter)
+        entities = table_client.query_entities(select=select, query_filter=query_filter)
         dataframe = pd.DataFrame(entities)
 
         return cls(name=name, dataframe=dataframe, **kwargs)
