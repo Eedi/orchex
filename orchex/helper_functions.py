@@ -45,27 +45,36 @@ def create_join_identifiers_table(
     return dedent(sql_text)
 
 
-def _SQLconnection(connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING"):
+def _SQLconnection(
+    connection_string_name="AZURE_SQL_REPORT_CONNECTION_STRING",
+    encoding: str | None = None,
+):
     connection_string = os.getenv(connection_string_name)
 
     # drivers argument added to work with drivers from all platforms (Windows, Linux, Mac)
     cnxn = pyodbc.connect(connection_string, driver=str(pyodbc.drivers()[0]))
-    cnxn.setdecoding(pyodbc.SQL_CHAR, encoding="utf-8")
-    cnxn.setdecoding(pyodbc.SQL_WCHAR, encoding="utf-8")
+
+    if encoding:
+        cnxn.setdecoding(pyodbc.SQL_CHAR, encoding=encoding)
+        cnxn.setdecoding(pyodbc.SQL_WCHAR, encoding=encoding)
+
     cursor = cnxn.cursor()
     return cursor
 
 
 def update_sql(
-    sql: str, connection_string_name: str = "AZURE_SQL_REPORT_CONNECTION_STRING"
+    sql: str,
+    connection_string_name: str = "AZURE_SQL_REPORT_CONNECTION_STRING",
+    encoding: str | None = None,
 ):
     """Executes an update SQL query.
 
     Args:
         sql (str): SQL query to be executed.
         connection_string_name (str, optional): Name of the environment variable containing the connection string. Defaults to "AZURE_SQL_REPORT_CONNECTION_STRING".
+        encoding (str, optional): Encoding to be used. Defaults to None.
     """
-    cursor = _SQLconnection(connection_string_name)
+    cursor = _SQLconnection(connection_string_name, encoding)
 
     try:
         cursor.execute(sql)
