@@ -347,6 +347,7 @@ class DataSource:
         name: str,
         sql: str,
         connection_string_name: str = "AZURE_SQL_REPORT_CONNECTION_STRING",
+        encoding: str | None = None,
         **kwargs,
     ):
         """Class method for creating a data source by extracting data from a SQL database.
@@ -355,11 +356,12 @@ class DataSource:
             name (str): The name of the data source.
             sql (str): The SQL query to run on the database.
             connection_string_name (str, optional): Name of the environment variable which stores the connections string. Defaults to "AZURE_SQL_REPORT_CONNECTION_STRING".
+            encoding (str, optional): The encoding to use. Defaults to None.
 
         Returns:
             DataSource: An instance of the DataSource class.
         """
-        cursor = _SQLconnection(connection_string_name)
+        cursor = _SQLconnection(connection_string_name, encoding)
 
         cursor.execute(sql)
 
@@ -375,6 +377,7 @@ class DataSource:
         name: str,
         filename: str,
         connection_string_name: str = "AZURE_SQL_REPORT_CONNECTION_STRING",
+        encoding: str | None = None,
         **kwargs,
     ):
         """Class method for creating a data source by extracting data from a SQL database.
@@ -383,11 +386,12 @@ class DataSource:
             name (str): The name of the data source.
             filename (str): The file containing the SQL query to run on the database.
             connection_string_name (str, optional): Name of the environment variable which stores the connections string. Defaults to "AZURE_SQL_REPORT_CONNECTION_STRING".
+            encoding (str, optional): The encoding to use. Defaults to None.
 
         Returns:
             DataSource: An instance of the DataSource class.
         """
-        cursor = _SQLconnection(connection_string_name)
+        cursor = _SQLconnection(connection_string_name, encoding)
 
         with open(filename, "r") as file:
             sql = file.read()
