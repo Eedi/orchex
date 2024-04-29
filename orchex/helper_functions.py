@@ -11,7 +11,11 @@ import pyodbc
 
 
 def create_join_identifiers_table(
-    temp_table_name: str, id_name: str, id_set: Iterable, is_int: bool = True
+    temp_table_name: str,
+    id_name: str,
+    id_set: Iterable,
+    is_int: bool = True,
+    batch_size: int = 1000,
 ):
     """Creates a temp table with a single column of identifiers to be used in a join.
 
@@ -20,29 +24,42 @@ def create_join_identifiers_table(
         identifier_name (str): Name of the column in the temp table.
         identifier_set (Iterable): List of identifiers to be inserted into the temp table.
         is_int (bool, optional): Whether the identifiers are integers. Defaults to True.
+        batch_size (int, optional): Batch size for each 'INSERT INTO' command. Defaults to our database limit 1000.
     """
-    # check temp table starts with #
+    # Check temporary table starts with '#'
     assert (
         temp_table_name[0] == "#"
     ), "This function is designed to create a temp table, please provide a name starting with #."
 
-    if is_int:
-        dtype = "INT"
-        insert_text = f") INSERT INTO {temp_table_name} VALUES ("
-        all_insertions_text = "(" + insert_text.join(list(map(str, id_set))) + ")"
-    else:
-        dtype = "VARCHAR(255)"
-        insert_text = f"') INSERT INTO {temp_table_name} VALUES ('"
-        all_insertions_text = "('" + insert_text.join(list(map(str, id_set))) + "')"
+    # Create the initial table creation string
+    dtype = "INT" if is_int else "VARCHAR(255)"
 
-    initial_text = f"""\
+    initial_string = f"""\
         DROP TABLE IF EXISTS {temp_table_name}
         CREATE TABLE {temp_table_name} ({id_name} {dtype})
-        INSERT INTO {temp_table_name} VALUES """
+        """
 
-    sql_text = initial_text + all_insertions_text
+    # Create the batched insertion string
+    id_list = list(id_set)
+    n_batches = (len(id_list) - 1) // batch_size
 
-    return dedent(sql_text)
+    def _generate_batch_string(batch: list) -> str:
+        if is_int:
+            batch_string = ", ".join(f"({value})" for value in batch)
+        else:
+            # Need single '' around each value when using strings
+            batch_string = ", ".join(f"('{value}')" for value in batch)
+
+        return batch_string
+
+    insert_string = ""
+    for i in range(0, n_batches + 1):
+        batch = id_list[i * batch_size : (i + 1) * batch_size]
+        insert_string += (
+            f"INSERT INTO {temp_table_name} VALUES {_generate_batch_string(batch)}\n"
+        )
+
+    return dedent(initial_string) + dedent(insert_string)
 
 
 def _SQLconnection(

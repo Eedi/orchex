@@ -610,6 +610,14 @@ class DataSource:
         markdown_report.add_heading("Glossary", 4)
 
         if self.glossary:
+            assert set(self.df.columns) == set(
+                self.glossary.keys()
+            ), "The columns in the dataframe are different to the glossary."
+
+            assert list(self.df.columns) == list(
+                self.glossary.keys()
+            ), "The columns in the dataframe are in a different order to the glossary."
+
             formatted_glossary = {
                 k: v.replace("\n\n", "<br><br>") for k, v in self.glossary.items()
             }
