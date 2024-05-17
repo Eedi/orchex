@@ -8,6 +8,7 @@ import random
 import re
 import string
 import zipfile
+import typing
 from collections.abc import Callable
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -498,7 +499,7 @@ class DataSource:
             return {
                 "field": field.name,
                 "count": field.count(),
-                "nunique": field.nunique(),
+                "nunique": field.nunique() if isinstance(field, typing.Hashable) else -1,
                 "non-null": field.notnull().sum(),
             }
 
@@ -562,7 +563,7 @@ class DataSource:
                 }
             )
 
-            if stats["nunique"] < 10:
+            if stats["nunique"] < 10 and stats["nunique"] >= 0:
                 stats["value_counts"] = str(field.value_counts().to_dict())
 
             return stats
