@@ -461,7 +461,7 @@ class DataSource:
         """
         self.data_extract = data_extract
 
-    def export(self, export_path: Path | str = None):
+    def export(self, export_path: Path | str = None) -> Path:
         """Export the data source as a csv.
 
         The intention is that this can be shared with others and should therefore not contain any sensitive information.
@@ -473,6 +473,9 @@ class DataSource:
                 (self.data_extract_path / self.public_folder / "data")
 
                 A csv with the name of the data source will be saved to this folder. Defaults to None.
+
+        Returns:
+            Path: An instance of the Path class pointing to the directory where this DataSource was saved.
         """
         assert (
             self.is_pseudonomised is True
@@ -489,6 +492,8 @@ class DataSource:
             export_path = Path(export_path)
 
         self.df.to_csv(str(export_path / f"{self.name}.csv"), index=False)
+        
+        return export_path
 
     def update_glossary(self, d):
         """Update the glossary with additional fields. Existing entries will be overwritten."""
