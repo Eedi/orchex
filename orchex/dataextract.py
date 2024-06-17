@@ -811,6 +811,9 @@ class DataExtract:
         if data_source_names is None:
             data_source_names = self.data_sources.keys()
 
+        # Save this extract to preserve psuedonization dictionary before sharing
+        self.save()
+
         for name in data_source_names:
             ds = self.data_sources[name]
             ds.export()
