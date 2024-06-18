@@ -310,6 +310,7 @@ class DataSource:
         """
         self.name = name
         self.description = description
+        self.immutable_original_df = tuple(dataframe.itertuples(index=False))
         self.df = dataframe
         self.columns_to_entities = columns_to_entities
         self.whitelist = whitelist
