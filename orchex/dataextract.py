@@ -13,6 +13,7 @@ from collections.abc import Callable
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+import math
 
 import inflect
 import pandas as pd
@@ -310,7 +311,7 @@ class DataSource:
         """
         self.name = name
         self.description = description
-        self.immutable_original_df = tuple(dataframe.itertuples(index=False))
+        self.original_df = dataframe.copy(deep=True)
         self.df = dataframe
         self.columns_to_entities = columns_to_entities
         self.whitelist = whitelist
@@ -502,10 +503,15 @@ class DataSource:
 
     def _get_summary_statistics_field(self, field):
         def _get_common_stats(field):
+            try:
+               nunique = field.nunique()
+            except:
+                nunique = math.nan
+
             return {
                 "field": field.name,
                 "count": field.count(),
-                "nunique": field.nunique() if isinstance(field, typing.Hashable) else -1,
+                "nunique": nunique,
                 "non-null": field.notnull().sum(),
             }
 
