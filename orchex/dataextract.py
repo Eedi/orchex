@@ -1,5 +1,6 @@
 """A module for managing data extracts, including the DataExtract and DataSource classes."""
 
+import math
 import os
 import pathlib
 import pickle
@@ -8,12 +9,10 @@ import random
 import re
 import string
 import zipfile
-import typing
 from collections.abc import Callable
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-import math
 
 import inflect
 import pandas as pd
@@ -494,7 +493,7 @@ class DataSource:
             export_path = Path(export_path)
 
         self.df.to_csv(str(export_path / f"{self.name}.csv"), index=False)
-        
+
         return export_path
 
     def update_glossary(self, d):
@@ -504,7 +503,7 @@ class DataSource:
     def _get_summary_statistics_field(self, field):
         def _get_common_stats(field):
             try:
-               nunique = field.nunique()
+                nunique = field.nunique()
             except:
                 nunique = math.nan
 
@@ -570,8 +569,8 @@ class DataSource:
                     "type": "object",
                     "min_length": field.str.len().min(),
                     "max_length": field.str.len().max(),
-                    "min_words": field.str.count(" ").min() + 1,
-                    "max_words": field.str.count(" ").max() + 1,
+                    "min_words": field.str.split().apply(len).min(),
+                    "max_words": field.str.split().apply(len).max(),
                 }
             )
 
