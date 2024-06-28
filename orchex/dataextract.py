@@ -462,7 +462,7 @@ class DataSource:
         """
         self.data_extract = data_extract
 
-    def export(self, export_path: Path | str = None) -> Path:
+    def export(self, export_path: Path | str = None, quoting = None) -> Path:
         """Export the data source as a csv.
 
         The intention is that this can be shared with others and should therefore not contain any sensitive information.
@@ -492,7 +492,7 @@ class DataSource:
         if isinstance(export_path, str):
             export_path = Path(export_path)
 
-        self.df.to_csv(str(export_path / f"{self.name}.csv"), index=False)
+        self.df.to_csv(str(export_path / f"{self.name}.csv"), quoting=quoting, index=False)
 
         return export_path
 
@@ -806,7 +806,7 @@ class DataExtract:
         with open(filepath, "wb") as file:
             pickle.dump(self, file)
 
-    def export(self, data_source_names: list[str] = None):
+    def export(self, data_source_names: list[str] = None, quoting=None):
         """Export the data extract as a csv.
 
         The intention is that this can be shared with others and should therefore not contain any sensitive information.
@@ -822,7 +822,7 @@ class DataExtract:
 
         for name in data_source_names:
             ds = self.data_sources[name]
-            ds.export()
+            ds.export(quoting=quoting)
 
     def archive(self, public_container_name: str, private_container_name: str):
         """Archive and upload the data extract to Azure Blob Storage.
