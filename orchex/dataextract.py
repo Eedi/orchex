@@ -564,12 +564,16 @@ class DataSource:
 
         def _handle_str_stats(field):
             stats = _get_common_stats(field)
+            stats.update(
+                {
+                    "type": "object",
+                }
+            )
 
             # is_string_dtype is true for strings and other objects (i.e., lists). If this field is unhashable, it is not an actual string.
             if not math.isnan(stats['nunique']):
                 stats.update(
                     {
-                        "type": "object",
                         "min_length": field.str.len().min(),
                         "max_length": field.str.len().max(),
                         "min_words": field.str.split().apply(len).min(),
