@@ -570,8 +570,8 @@ class DataSource:
                 }
             )
 
-            # is_string_dtype is true for strings and other objects (i.e., lists). If this field is unhashable, it is not an actual string.
-            if not math.isnan(stats['nunique']):
+            # is_string_dtype is true for strings and other objects (i.e., lists). Only calculate string stats if this field is an actual string.
+            if all(field.apply(lambda x: isinstance(x, str))):
                 stats.update(
                     {
                         "min_length": field.str.len().min(),
