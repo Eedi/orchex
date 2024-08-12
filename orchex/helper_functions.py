@@ -1,5 +1,4 @@
 """Helper functions for Orchex."""
-
 import datetime
 import os
 import time
@@ -8,6 +7,7 @@ from textwrap import dedent
 
 import pandas as pd
 import pyodbc
+from mnemonic import Mnemonic
 
 
 def create_join_identifiers_table(
@@ -138,3 +138,17 @@ def getDateTable(start: str, end: str = None):
         Quarter=inital_dates["Date"].dt.quarter,
     )
     return date_dimension
+
+
+def three_word_identifier() -> str:
+    """Generates an _almost certainly_ unique three word identifier.
+
+    Only to be used in contexts where _almost certainly unique_ is OK.
+
+    Returns:
+        str: An _almost certainly_ unique three word identifier of the form "foo-bar-boo".
+    """
+    mnemo = Mnemonic("english")
+    words = mnemo.generate(strength=128).split()
+
+    return "-".join(words[:3])
