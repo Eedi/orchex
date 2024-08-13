@@ -5,7 +5,6 @@ import os
 import pathlib
 import pickle
 import platform
-import random
 import re
 import string
 import zipfile
@@ -19,7 +18,7 @@ import pandas as pd
 from azure.data.tables import TableServiceClient
 
 from .blobs import Blobs
-from .helper_functions import _SQLconnection
+from .helper_functions import _SQLconnection, three_word_identifier
 
 
 @contextmanager
@@ -247,12 +246,8 @@ class MarkdownReport:
             toc_markdown += f"{'    ' * level}{index}. [{heading}](#{anchor})\n"
 
             # Generate a unique anchor for the heading
-            assert (
-                toc_anchors.get(heading) is None
-            ), (
-                "This heading already exists, use unique names for headings (or write a better toc \
+            assert toc_anchors.get(heading) is None, "This heading already exists, use unique names for headings (or write a better toc \
                 generator)."
-            )
 
             toc_anchors[heading] = anchor
 
@@ -462,7 +457,7 @@ class DataSource:
         """
         self.data_extract = data_extract
 
-    def export(self, export_path: Path | str = None, quoting = None) -> Path:
+    def export(self, export_path: Path | str = None, quoting=None) -> Path:
         """Export the data source as a csv.
 
         The intention is that this can be shared with others and should therefore not contain any sensitive information.
@@ -492,7 +487,9 @@ class DataSource:
         if isinstance(export_path, str):
             export_path = Path(export_path)
 
-        self.df.to_csv(str(export_path / f"{self.name}.csv"), quoting=quoting, index=False)
+        self.df.to_csv(
+            str(export_path / f"{self.name}.csv"), quoting=quoting, index=False
+        )
 
         return export_path
 
@@ -504,7 +501,7 @@ class DataSource:
         def _get_common_stats(field):
             try:
                 nunique = field.nunique()
-            except:
+            except Exception:
                 nunique = math.nan
 
             return {
@@ -681,6 +678,8 @@ class DataExtract:
 
         self.set_paths_and_filenames()
 
+        self.create_info_file()
+
     @classmethod
     def fromPickle(cls, filepath: Path | str) -> "DataExtract":
         """Load a data extract from the given filepath.
@@ -712,10 +711,7 @@ class DataExtract:
 
     def __stamp(self):
         """Stamps the data extract with a unique code and datetime."""
-        size = 32
-        chars = string.ascii_lowercase + string.digits
-
-        self.id = "".join(random.choices(chars, k=size))
+        self.id = three_word_identifier()
         self.datetime = datetime.now(timezone.utc)
 
     def set_paths_and_filenames(self):
@@ -732,19 +728,6 @@ class DataExtract:
                     - docs
                         - README.md
                         - img
-
-        We define the path to the folder containing the data extract and then the filenames and
-        folders within it:
-
-        {data_extract_path} /
-            - {private_filename}
-            - {public_folder} /
-                - data
-                    - {data_source_name}.csv
-                - img
-                - docs
-                    - README.md
-                    - img
         """
         self.name_date_id = (
             f"{self.name}-{self.datetime.strftime('%Y%m%d%H%M')}-{self.id}"
@@ -763,6 +746,24 @@ class DataExtract:
         (self.data_extract_path / self.public_folder / "docs" / "img").mkdir(
             parents=True, exist_ok=True
         )
+
+    def create_info_file(self):
+        """Create a file in the root of the public data folder with initial information about the data extract."""
+        (self.data_extract_path / self.public_folder).mkdir(parents=True, exist_ok=True)
+
+        info_filepath = self.data_extract_path / self.public_folder / "info.txt"
+
+        info = (
+            f"Data Extract Information\n"
+            f"================================\n\n"
+            f"Name: {self.name}\n"
+            f"ID: {self.id}\n"
+            f"Datetime: {self.datetime}\n"
+            f"Description: {self.description}"
+        )
+
+        with open(info_filepath, "w", encoding="utf-8") as f:
+            f.write(info)
 
     def add_data_source(self, data_source: DataSource):
         """Add a data source to the data extract.
